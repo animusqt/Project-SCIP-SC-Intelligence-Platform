@@ -8,6 +8,10 @@
              Background="{DynamicResource BackgroundBrush}">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="20">
+            <!-- Diagnostic: Verify view renders -->
+            <TextBlock Text="SETTINGS ACTIVE" FontSize="16" FontWeight="Bold" 
+                       Foreground="{DynamicResource PrimaryTextColor}" 
+                       Margin="0,0,0,20"/>
             <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="24">
                 <StackPanel Orientation="Vertical">
                     <TextBlock Text="⚙️ Settings" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,8"/>
