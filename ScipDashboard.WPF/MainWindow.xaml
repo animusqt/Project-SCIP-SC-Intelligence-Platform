@@ -53,6 +53,7 @@
                     <Button Content="StarQuester" Click="Navigate_StarQuester" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Salvaging" Click="Navigate_Salvaging" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Settings" Click="Navigate_Settings" Style="{StaticResource SidebarButtonStyle}"/>
+                    <Button Content="OCR | SCAN" Click="Navigate_OcrScan" Style="{StaticResource SidebarButtonStyle}"/>
                 </StackPanel>
             </Border>
 

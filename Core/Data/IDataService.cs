@@ -23,6 +23,7 @@ namespace ScipDashboard.Core.Data
         Task<List<ScipDashboard.Core.Models.WatchlistItem>> GetWatchlistAsync();
         Task AddToWatchlistAsync(ScipDashboard.Core.Models.WatchlistItem item);
         Task RemoveFromWatchlistAsync(string id);
+        Task UpdateCommodityPriceAsync(string commodityId, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName);
     }
 
     // Complete implementation using Models types
@@ -159,6 +160,54 @@ namespace ScipDashboard.Core.Data
         public async Task RemoveFromWatchlistAsync(string id)
         {
             _watchlist.RemoveAll(w => w.Id.ToString() == id);
+            await Task.CompletedTask;
+        }
+
+        public async Task UpdateCommodityPriceAsync(string commodityId, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName)
+        {
+            // Try to find existing commodity
+            var commodity = _commodities.FirstOrDefault(c => c.Id == commodityId);
+            if (commodity == null)
+            {
+                // Create new commodity entry
+                commodity = new ScipDashboard.Core.Models.Commodity
+                {
+                    Id = commodityId,
+                    Name = locationName,
+                    DisplayName = locationName,
+                    CurrentBuyPrice = buyPrice,
+                    CurrentSellPrice = sellPrice,
+                    MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
+                    SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample
+                };
+                _commodities.Add(commodity);
+            }
+            else
+            {
+                // Update existing commodity prices
+                commodity.CurrentBuyPrice = buyPrice;
+                commodity.CurrentSellPrice = sellPrice;
+                commodity.MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m;
+            }
+
+            // Add price observation
+            var observation = new ScipDashboard.Core.Models.PriceObservation
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommodityId = commodityId,
+                LocationId = locationId,
+                LocationName = locationName,
+                SystemName = systemName,
+                BuyPrice = buyPrice,
+                SellPrice = sellPrice,
+                Volume = volume,
+                DemandVolume = demandVolume,
+                Timestamp = timestamp,
+                SourceName = sourceName,
+                MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m
+            };
+            _observations.Add(observation);
+
             await Task.CompletedTask;
         }
     }

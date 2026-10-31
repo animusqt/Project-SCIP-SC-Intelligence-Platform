@@ -11,7 +11,8 @@ namespace ScipDashboard.WPF
         Fleet,
         StarQuest,
         Salvage,
-        Settings
+        Settings,
+        Scan
     }
 
     public sealed class DashboardState

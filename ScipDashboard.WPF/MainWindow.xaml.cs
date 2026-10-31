@@ -231,6 +231,16 @@ namespace ScipDashboard.Main
             }
         }
 
+        private void Navigate_OcrScan(object sender, RoutedEventArgs e)
+        {
+            var viewModel = DataContext as MainViewModel;
+            if (viewModel != null)
+            {
+                viewModel.CurrentView = ScipDashboard.WPF.DashboardView.Scan;
+                DashboardState.Instance.CurrentView = ScipDashboard.WPF.DashboardView.Scan;
+            }
+        }
+
         private void Navigate_Salvaging(object sender, RoutedEventArgs e)
         {
             var viewModel = DataContext as MainViewModel;

@@ -46,6 +46,8 @@ namespace ScipDashboard.WPF
                         return new Modules.SalvageView();
                     case DashboardView.Settings:
                         return new Modules.SettingsView();
+                    case DashboardView.Scan:
+                        return new Modules.ScanView();
                     default:
                         return new Modules.DashboardView();
                 }
