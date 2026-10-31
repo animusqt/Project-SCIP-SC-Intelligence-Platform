@@ -16,8 +16,7 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="16,16,16,0">
+    <Grid Margin="16,16,16,0">
 
             <!-- HEADER -->
             <Border Margin="0,0,0,16" Background="{DynamicResource GradientCard}" CornerRadius="8"
@@ -134,116 +133,118 @@
                     </Border>
 
                     <!-- Commodity Rows -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding Commodities}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="6,4" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}"
-                                            Background="{DynamicResource CardBrush}">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
+                    <Border Grid.Row="1" Background="Transparent">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Commodities}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="6,4" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}"
+                                                Background="{DynamicResource CardBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
 
-                                            <!-- Main Row -->
-                                            <Grid Grid.Row="0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" MinWidth="160" SharedSizeGroup="ColCommodity"/>
-                                                    <ColumnDefinition Width="80" SharedSizeGroup="ColBuy"/>
-                                                    <ColumnDefinition Width="80" SharedSizeGroup="ColSell"/>
-                                                    <ColumnDefinition Width="80" SharedSizeGroup="ColMargin"/>
-                                                    <ColumnDefinition Width="80" SharedSizeGroup="ColVolume"/>
-                                                    <ColumnDefinition Width="70" SharedSizeGroup="ColRisk"/>
-                                                    <ColumnDefinition Width="80" SharedSizeGroup="ColTrend"/>
-                                                </Grid.ColumnDefinitions>
+                                                <!-- Main Row -->
+                                                <Grid Grid.Row="0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" MinWidth="160" SharedSizeGroup="ColCommodity"/>
+                                                        <ColumnDefinition Width="80" SharedSizeGroup="ColBuy"/>
+                                                        <ColumnDefinition Width="80" SharedSizeGroup="ColSell"/>
+                                                        <ColumnDefinition Width="80" SharedSizeGroup="ColMargin"/>
+                                                        <ColumnDefinition Width="80" SharedSizeGroup="ColVolume"/>
+                                                        <ColumnDefinition Width="70" SharedSizeGroup="ColRisk"/>
+                                                        <ColumnDefinition Width="80" SharedSizeGroup="ColTrend"/>
+                                                    </Grid.ColumnDefinitions>
 
-                                        <!-- Expand/Collapse Arrow -->
-                                        <Button Grid.Column="0" Width="24" Height="24" Padding="0" Margin="0" BorderThickness="0"
-                                                Background="Transparent" Foreground="{DynamicResource SecondaryTextColor}"
-                                                FontSize="10" FontWeight="Bold" Cursor="Hand"
-                                                VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                Command="{Binding ExpandCommand}" CommandParameter="{Binding Id}">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Content" Value="▼"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                                                            <Setter Property="Content" Value="▲"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
+                                                    <!-- Expand/Collapse Arrow -->
+                                                    <Button Grid.Column="0" Width="24" Height="24" Padding="0" Margin="0" BorderThickness="0"
+                                                            Background="Transparent" Foreground="{DynamicResource SecondaryTextColor}"
+                                                            FontSize="10" FontWeight="Bold" Cursor="Hand"
+                                                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                            Command="{Binding ExpandCommand}" CommandParameter="{Binding Id}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Content" Value="▼"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                        <Setter Property="Content" Value="▲"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
 
-                                                <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource PrimaryTextColor}" Grid.Column="0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding BuyPrice, StringFormat='{}{0:0}'}" FontSize="10" FontWeight="Bold"
-                                                           Foreground="{DynamicResource SuccessGreen}" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding SellPrice, StringFormat='{}{0:0}'}" FontSize="10" FontWeight="Bold"
-                                                           Foreground="#EF4444" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Margin, StringFormat='{}{0:0.##}%'}" FontSize="10" FontWeight="Bold"
-                                                           Foreground="{Binding Margin, Converter={StaticResource MarginToColor}}"
-                                                           Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Volume, StringFormat='{}{0:#,##0}'}" FontSize="9" Foreground="{DynamicResource SecondaryTextColor}"
-                                                           Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding RiskText}" FontSize="9" FontWeight="Bold"
-                                                           Foreground="{Binding Risk, Converter={StaticResource RiskToColor}}"
-                                                           Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Trend}" FontSize="9" FontWeight="Bold"
-                                                           Foreground="{Binding Trend, Converter={StaticResource TrendToColor}}"
-                                                           Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource PrimaryTextColor}" Grid.Column="0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding BuyPrice, StringFormat='{}{0:0}'}" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource SuccessGreen}" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding SellPrice, StringFormat='{}{0:0}'}" FontSize="10" FontWeight="Bold"
+                                                               Foreground="#EF4444" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Margin, StringFormat='{}{0:0.##}%'}" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{Binding Margin, Converter={StaticResource MarginToColor}}"
+                                                               Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Volume, StringFormat='{}{0:#,##0}'}" FontSize="9" Foreground="{DynamicResource SecondaryTextColor}"
+                                                               Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding RiskText}" FontSize="9" FontWeight="Bold"
+                                                               Foreground="{Binding Risk, Converter={StaticResource RiskToColor}}"
+                                                               Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Trend}" FontSize="9" FontWeight="Bold"
+                                                               Foreground="{Binding Trend, Converter={StaticResource TrendToColor}}"
+                                                               Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+
+                                                <!-- Station Details (Expandable) -->
+                                                <Border Grid.Row="1" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}"
+                                                        Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="0,0,6,6"
+                                                        BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="12,8">
+                                                    <ItemsControl ItemsSource="{Binding StationObservations}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="{DynamicResource CardBrush}" CornerRadius="6"
+                                                                        Margin="0,0,8,8" Padding="10,8" Width="210">
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="{Binding LocationName}" FontSize="11" FontWeight="Bold"
+                                                                                   Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,4"/>
+                                                                        <TextBlock Text="{Binding SystemName}" FontSize="9" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,6"/>
+                                                                        <Grid Margin="0,0,0,6">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <StackPanel Grid.Column="0">
+                                                                                <TextBlock Text="Buy" FontSize="8" Foreground="{DynamicResource MutedTextColor}"/>
+                                                                                <TextBlock Text="{Binding BuyPrice, StringFormat='{}{0:0}'}" FontSize="11" FontWeight="Bold"
+                                                                                           Foreground="{DynamicResource SuccessGreen}"/>
+                                                                            </StackPanel>
+                                                                            <StackPanel Grid.Column="1">
+                                                                                <TextBlock Text="Sell" FontSize="8" Foreground="{DynamicResource MutedTextColor}"/>
+                                                                                <TextBlock Text="{Binding SellPrice, StringFormat='{}{0:0}'}" FontSize="11" FontWeight="Bold"
+                                                                                           Foreground="#EF4444"/>
+                                                                            </StackPanel>
+                                                                        </Grid>
+                                                                        <TextBlock Text="{Binding Margin, StringFormat='{}{0:0.##}%'}" FontSize="10" FontWeight="Bold"
+                                                                                   Foreground="{Binding Margin, Converter={StaticResource MarginToColor}}" Margin="0,4,0,0"/>
+                                                                        <TextBlock Text="{Binding SourceName}" FontSize="8" Foreground="{DynamicResource MutedTextColor}" Margin="0,2,0,0"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Border>
                                             </Grid>
-
-                                            <!-- Station Details (Expandable) -->
-                                            <Border Grid.Row="1" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}"
-                                                    Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="0,0,6,6"
-                                                    BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="12,8">
-                                                <ItemsControl ItemsSource="{Binding StationObservations}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <WrapPanel/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="{DynamicResource CardBrush}" CornerRadius="6"
-                                                                    Margin="0,0,8,8" Padding="10,8" Width="210">
-                                                                <StackPanel>
-                                                                    <TextBlock Text="{Binding LocationName}" FontSize="11" FontWeight="Bold"
-                                                                               Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,4"/>
-                                                                    <TextBlock Text="{Binding SystemName}" FontSize="9" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,6"/>
-                                                                    <Grid Margin="0,0,0,6">
-                                                                        <Grid.ColumnDefinitions>
-                                                                            <ColumnDefinition Width="*"/>
-                                                                            <ColumnDefinition Width="*"/>
-                                                                        </Grid.ColumnDefinitions>
-                                                                        <StackPanel Grid.Column="0">
-                                                                            <TextBlock Text="Buy" FontSize="8" Foreground="{DynamicResource MutedTextColor}"/>
-                                                                            <TextBlock Text="{Binding BuyPrice, StringFormat='{}{0:0}'}" FontSize="11" FontWeight="Bold"
-                                                                                       Foreground="{DynamicResource SuccessGreen}"/>
-                                                                        </StackPanel>
-                                                                        <StackPanel Grid.Column="1">
-                                                                            <TextBlock Text="Sell" FontSize="8" Foreground="{DynamicResource MutedTextColor}"/>
-                                                                            <TextBlock Text="{Binding SellPrice, StringFormat='{}{0:0}'}" FontSize="11" FontWeight="Bold"
-                                                                                       Foreground="#EF4444"/>
-                                                                        </StackPanel>
-                                                                    </Grid>
-                                                                    <TextBlock Text="{Binding Margin, StringFormat='{}{0:0.##}%'}" FontSize="10" FontWeight="Bold"
-                                                                               Foreground="{Binding Margin, Converter={StaticResource MarginToColor}}" Margin="0,4,0,0"/>
-                                                                    <TextBlock Text="{Binding SourceName}" FontSize="8" Foreground="{DynamicResource MutedTextColor}" Margin="0,2,0,0"/>
-                                                                </StackPanel>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
                 </Grid>
             </Border>
 
@@ -261,5 +262,4 @@
             </Border>
 
         </Grid>
-    </ScrollViewer>
-</UserControl>
+    </UserControl>

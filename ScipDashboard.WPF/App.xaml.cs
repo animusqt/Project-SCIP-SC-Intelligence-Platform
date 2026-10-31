@@ -227,12 +227,27 @@ namespace ScipDashboard
         {
             var locations = new List<ScipDashboard.Core.Models.Location>
             {
-                new() { Id = "loc-nb", Name = "New Babbage", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-a18", Name = "Area18", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-lor", Name = "Lorville", SystemName = "Hurston", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-olisar", Name = "Port Olisar", SystemName = "Stanton", Type = "Station", IsActive = true, HasCommoditiesMarket = true },
+                // Stanton System
+                new() { Id = "loc-nb", Name = "New Babbage", SystemName = "Stanton", Type = "City", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-a18", Name = "Area18", SystemName = "Stanton", Type = "City", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-lor", Name = "Lorville", SystemName = "Hurston", Type = "City", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-olisar", Name = "Port Olisar", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
                 new() { Id = "loc-arc", Name = "ArcCorp", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
                 new() { Id = "loc-mic", Name = "MicroTech", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-everus", Name = "Everus Harbor", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-chawla", Name = "Chawla's Beach", SystemName = "Stanton", Type = "Outpost", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-golden", Name = "The Golden Riviera", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-devlin", Name = "Devlin Scrap & Salvage", SystemName = "Stanton", Type = "Salvage Yard", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-arcmine", Name = "ArcCorp Mining Area 061", SystemName = "Stanton", Type = "Mine", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-peoples", Name = "People's Service Station Theta", SystemName = "Stanton", Type = "Station", IsActive = true, HasCommoditiesMarket = true },
+                // Pyro System
+                new() { Id = "loc-pyro1", Name = "Prospect", SystemName = "Pyro", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-pyro2", Name = "Eclipse", SystemName = "Pyro", Type = "Station", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-pyro3", Name = "Vigilance", SystemName = "Pyro", Type = "Station", IsActive = true, HasCommoditiesMarket = true },
+                // Nyx System
+                new() { Id = "loc-nyx1", Name = "Riot", SystemName = "Nyx", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-nyx2", Name = "Orison Mining Platform", SystemName = "Nyx", Type = "Platform", IsActive = true, HasCommoditiesMarket = true },
+                new() { Id = "loc-nyx3", Name = "Pyro Salvage Base", SystemName = "Nyx", Type = "Salvage Yard", IsActive = true, HasCommoditiesMarket = true },
             };
 
             var commodities = new List<ScipDashboard.Core.Models.Commodity>
