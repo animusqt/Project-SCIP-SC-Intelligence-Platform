@@ -1,0 +1,12 @@
+D:\Project_SCIP\SCIP\Dashboard\Core\bin\Release\net8.0-windows\Core.deps.json
+D:\Project_SCIP\SCIP\Dashboard\Core\bin\Release\net8.0-windows\Core.dll
+D:\Project_SCIP\SCIP\Dashboard\Core\bin\Release\net8.0-windows\Core.pdb
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.AssemblyInfoInputs.cache
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.AssemblyInfo.cs
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.csproj.CoreCompileInputs.cache
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.dll
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\refint\Core.dll
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\Core.pdb
+D:\Project_SCIP\SCIP\Dashboard\Core\obj\Release\net8.0-windows\ref\Core.dll
+

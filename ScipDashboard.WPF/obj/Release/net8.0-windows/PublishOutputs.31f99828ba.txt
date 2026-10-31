@@ -1,0 +1,7 @@
+D:\Project_SCIP\SCIP\Dashboard\Publish\ScipDashboard.WPF.exe
+D:\Project_SCIP\SCIP\Dashboard\Publish\ScipDashboard.WPF.dll
+D:\Project_SCIP\SCIP\Dashboard\Publish\ScipDashboard.WPF.deps.json
+D:\Project_SCIP\SCIP\Dashboard\Publish\ScipDashboard.WPF.runtimeconfig.json
+D:\Project_SCIP\SCIP\Dashboard\Publish\ScipDashboard.WPF.pdb
+D:\Project_SCIP\SCIP\Dashboard\Publish\Core.dll
+D:\Project_SCIP\SCIP\Dashboard\Publish\Core.pdb
