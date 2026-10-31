@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWinWT>true</UseWinWT>
+    <RootNamespace>ScipDashboard.Core</RootNamespace>
+    <!-- Disable implicit compile items to avoid duplication with explicit includes -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWinWT>true</UseWinWT>
+    <RootNamespace>ScipDashboard.Core</RootNamespace>
+    <!-- Disable implicit compile items to avoid duplication with explicit includes -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Explicit source files - Models first to ensure types are compiled before Services reference them -->
+    <Compile Include="Models\Models.cs" />
+    <Compile Include="Common\*.cs" />
+    <Compile Include="Data\*.cs" />
+    <Compile Include="Services\*.cs" />
+  </ItemGroup>
+</Project>
+

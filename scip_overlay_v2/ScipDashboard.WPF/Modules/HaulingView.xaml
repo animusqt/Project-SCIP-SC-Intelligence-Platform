@@ -1,0 +1,555 @@
+<UserControl x:Class="ScipDashboard.WPF.Modules.HaulingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:ScipDashboard.WPF.ViewModels"
+             xmlns:converters="clr-namespace:ScipDashboard.WPF.Converters"
+             mc:Ignorable="d"
+             Background="{DynamicResource BackgroundBrush}"
+             d:DataContext="{d:DesignInstance Type=viewmodels:HaulingViewModel}">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
+
+        <!-- Stat card label -->
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource DarkModeSubtextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- Stat card value -->
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource CharcoalBrush}"/>
+        </Style>
+
+        <!-- Field label inside the builder -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource DarkModeSubtextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- Small uppercase chip (system / type) -->
+        <Style x:Key="Chip" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+        <Style x:Key="ChipText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource DarkModeSubtextBrush}"/>
+        </Style>
+
+        <!-- Number input -->
+        <Style x:Key="NumberBox" TargetType="TextBox" BasedOn="{StaticResource SearchTextBoxStyle}">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="30"/>
+        </Style>
+
+        <!-- Big primary action -->
+        <Style x:Key="PrimaryActionButton" TargetType="Button" BasedOn="{StaticResource OrangeButtonStyle}">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Height" Value="34"/>
+        </Style>
+
+        <!-- Loop option button (full width, left aligned) -->
+        <Style x:Key="LoopOptionButton" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource CharcoalBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryOrangeBrush}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Combo placeholder text overlay -->
+        <Style x:Key="ComboPlaceholder" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource DarkModeSubtextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="12,0,0,0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+
+        <!-- Leg stock/demand bars -->
+        <Style x:Key="StockBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="5"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource SuccessGreen}"/>
+            <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding BuyStockGood}" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryOrangeBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DemandBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="5"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryOrangeBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SellDemandOk}" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryOrangeBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="20,16,20,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ==================== HEADER ==================== -->
+            <Grid Grid.Row="0" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="CARGO OPERATIONS" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,0,0,2"/>
+                    <TextBlock Text="Hauling Service" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}"/>
+                    <TextBlock Text="Build multi-stop hauling loops from live market prices" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource SuccessGreen}" MaxWidth="360" TextTrimming="CharacterEllipsis"/>
+                    </Border>
+                    <Button Content="&#x21bb; REFRESH" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding RefreshCommand}" VerticalAlignment="Top"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ==================== STATS ROW ==================== -->
+            <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,14">
+                <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16,12" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="CARGO CAPACITY" Style="{StaticResource StatLabel}"/>
+                        <TextBlock Text="{Binding StatCargoCapacity}" Style="{StaticResource StatValue}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16,12" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="PROFITABLE ROUTES" Style="{StaticResource StatLabel}"/>
+                        <TextBlock Text="{Binding StatProfitableRoutes}" Style="{StaticResource StatValue}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16,12" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="TOP SINGLE ROUTE" Style="{StaticResource StatLabel}"/>
+                        <TextBlock Text="{Binding StatTopRouteProfit}" Style="{StaticResource StatValue}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="LOOP TOTAL PROFIT" Style="{StaticResource StatLabel}"/>
+                        <TextBlock Text="{Binding LoopTotalText}" Style="{StaticResource StatValue}" Foreground="{DynamicResource SuccessGreen}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- ==================== MAIN: BUILDER + LOOP ==================== -->
+            <Grid Grid.Row="2" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="420" MinWidth="380"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ============ ROUTE BUILDER CARD ============ -->
+                <Border Grid.Column="0" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="18">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="ROUTE BUILDER" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                <TextBlock Text="Build Route" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}"/>
+                            </StackPanel>
+                            <Border Background="{DynamicResource PrimaryOrangeBrush}" CornerRadius="10" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding ShipsCountText}" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Inputs row -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="CARGO SCU" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding CargoCapacity, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumberBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="STARTING CAPITAL" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding StartingCapital, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumberBox}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Max box row -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="MAX BOX" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding MaxBoxOptions}" SelectedItem="{Binding SelectedMaxBox}" Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="12"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                                <Button Content="REC" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding RecommendedBoxCommand}" Margin="0,0,0,1"/>
+                                <TextBlock FontSize="8" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Center">
+                                    <Run Text="rec "/><Run Text="{Binding RecommendedMaxBox, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Chained pickers -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid>
+                                <ComboBox ItemsSource="{Binding Stations}"
+                                          SelectedItem="{Binding SelectedStation}"
+                                          DisplayMemberPath="Name"
+                                          Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"/>
+                                <TextBlock Text="WHERE TO BUY?" Style="{StaticResource ComboPlaceholder}"
+                                           Visibility="{Binding HasStationSelection, Converter={StaticResource InverseBoolToVisibility}}"/>
+                            </Grid>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid>
+                                <ComboBox ItemsSource="{Binding CommodityOptions}"
+                                          SelectedItem="{Binding SelectedCommodityOption}"
+                                          DisplayMemberPath="DisplayText"
+                                          Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"
+                                          IsEnabled="{Binding HasStationSelection}"/>
+                                <TextBlock Text="WHAT TO CARRY?" Style="{StaticResource ComboPlaceholder}"
+                                           Visibility="{Binding HasCommoditySelection, Converter={StaticResource InverseBoolToVisibility}}"/>
+                            </Grid>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid>
+                                <ComboBox ItemsSource="{Binding DestinationOptions}"
+                                          SelectedItem="{Binding SelectedDestinationOption}"
+                                          DisplayMemberPath="DisplayText"
+                                          Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"
+                                          IsEnabled="{Binding HasCommoditySelection}"/>
+                                <TextBlock Text="WHERE TO SELL IT?" Style="{StaticResource ComboPlaceholder}"
+                                           Visibility="{Binding HasDestinationSelection, Converter={StaticResource InverseBoolToVisibility}}"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Actions -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="ADD LEG" Style="{StaticResource PrimaryActionButton}" Command="{Binding AddLegCommand}"/>
+                            <Button Grid.Column="2" Content="CLEAR" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding ClearLoopCommand}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Loop totals -->
+                        <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="LOOP TOTAL" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                    <TextBlock Text="{Binding LoopTotalText}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource SuccessGreen}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="CASH ON HAND" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                    <TextBlock Text="{Binding CashOnHandText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+
+                        <!-- Saved routes -->
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="MY SAVED ROUTES" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" VerticalAlignment="Center"/>
+                            <Grid HorizontalAlignment="Right">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding LoopName, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource SearchTextBoxStyle}" Height="26" FontSize="10"
+                                         VerticalContentAlignment="Center" ToolTip="Loop name">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding SaveLoopCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <Button Grid.Column="2" Content="SAVE LOOP" Style="{StaticResource OrangeButtonStyle}" FontSize="9"
+                                        Padding="10,4" VerticalAlignment="Center" Command="{Binding SaveLoopCommand}"/>
+                            </Grid>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding SavedLoops}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="6" Padding="10,6" Margin="0,0,0,4">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}"/>
+                                            <TextBlock Text="{Binding DetailText}" FontSize="9" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="Nothing saved yet. Build a loop above then click Save."
+                                   FontSize="9" Foreground="{DynamicResource DarkModeSubtextBrush}" FontStyle="Italic" Margin="0,2,0,0"
+                                   Visibility="{Binding NoSavedLoops, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============ MULTI-STOP ROUTE LOOP CARD ============ -->
+                <Border Grid.Column="2" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="18">
+                    <DockPanel LastChildFill="True">
+                        <!-- Header -->
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="MULTI-STOP ROUTE LOOP" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                <TextBlock Text="Auto-generated loops" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}"/>
+                                <TextBlock Text="{Binding LoopOptionsHeader}" FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Option buttons -->
+                            <ItemsControl Grid.Row="0" ItemsSource="{Binding LoopOptions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding DisplayText}" Style="{StaticResource LoopOptionButton}"
+                                                Click="LoopOption_Click" Margin="0,0,8,6"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Legs list -->
+                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel>
+                                    <TextBlock Text="No legs yet — pick an option above or build one on the left."
+                                               FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" FontStyle="Italic" Margin="0,4,0,0"
+                                               Visibility="{Binding NoLegs, Converter={StaticResource BoolToVisibility}}"/>
+
+                                    <ItemsControl ItemsSource="{Binding Legs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="14,10" Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="30"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Step circle -->
+                                                        <Border Grid.Column="0" Width="24" Height="24" CornerRadius="12"
+                                                                Background="{DynamicResource PrimaryOrangeBrush}" VerticalAlignment="Top" Margin="0,2,0,0">
+                                                            <TextBlock Text="{Binding StepNumber}" FontSize="11" FontWeight="Bold"
+                                                                       Foreground="{DynamicResource CharcoalBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+
+                                                        <!-- Leg details -->
+                                                        <StackPanel Grid.Column="1" Margin="8,0,10,0">
+                                                            <!-- Chips -->
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Style="{StaticResource Chip}">
+                                                                    <TextBlock Text="{Binding FromSystem}" Style="{StaticResource ChipText}"/>
+                                                                </Border>
+                                                                <Border Style="{StaticResource Chip}">
+                                                                    <TextBlock Text="{Binding FromType}" Style="{StaticResource ChipText}"/>
+                                                                </Border>
+                                                            </StackPanel>
+
+                                                            <!-- Route -->
+                                                            <TextBlock FontSize="12" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" TextTrimming="CharacterEllipsis">
+                                                                <Run Text="{Binding FromName, Mode=OneWay}"/>
+                                                                <Run Text=" &#x2192; " Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                                                <Run Text="{Binding CommodityName, Mode=OneWay}" Foreground="{DynamicResource WarningGold}"/>
+                                                                <Run Text=" &#x2192; " Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                                                <Run Text="{Binding ToName, Mode=OneWay}"/>
+                                                            </TextBlock>
+
+                                                            <!-- Prices -->
+                                                            <TextBlock FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,6">
+                                                                <Run Text="{Binding BuyText, Mode=OneWay}"/>
+                                                                <Run Text="  &#xb7;  "/>
+                                                                <Run Text="{Binding SellText, Mode=OneWay}"/>
+                                                                <Run Text="  &#xb7;  "/>
+                                                                <Run Text="{Binding MarginText, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                                <Run Text="  &#xb7;  "/>
+                                                                <Run Text="{Binding ScuText, Mode=OneWay}"/>
+                                                            </TextBlock>
+
+                                                            <!-- Stock / demand bars -->
+                                                            <Grid Margin="0,0,0,2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="10"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel Grid.Column="0">
+                                                                    <Grid Margin="0,0,0,2">
+                                                                        <TextBlock Text="{Binding BuyStockStateText}" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                                                        <TextBlock Text="{Binding BuyStockText}" FontSize="8" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                                                                    </Grid>
+                                                                    <ProgressBar Style="{StaticResource StockBar}"
+                                                                                 Value="{Binding BuyStockFill, Mode=OneWay}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="2">
+                                                                    <Grid Margin="0,0,0,2">
+                                                                        <TextBlock Text="{Binding SellDemandStateText}" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                                                                        <TextBlock Text="{Binding SellDemandText}" FontSize="8" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                                                                    </Grid>
+                                                                    <ProgressBar Style="{StaticResource DemandBar}"
+                                                                                 Value="{Binding SellDemandFill, Mode=OneWay}"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </StackPanel>
+
+                                                        <!-- Profit badge -->
+                                                        <Border Grid.Column="2" Background="{DynamicResource SuccessGreen}" CornerRadius="6" Padding="10,6" VerticalAlignment="Top">
+                                                            <TextBlock Text="{Binding ProfitText}" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- ==================== BEST SINGLE ROUTES ==================== -->
+            <Border Grid.Row="3" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="18">
+                <StackPanel>
+                    <TextBlock Text="{Binding BestRoutesHeader}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,10"/>
+
+                    <!-- Table header -->
+                    <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4" Padding="10,6" Margin="0,0,0,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.4*"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="START" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                            <TextBlock Grid.Column="1" Text="COMMODITY" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                            <TextBlock Grid.Column="2" Text="SELL AT" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                            <TextBlock Grid.Column="3" Text="BUY" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Column="4" Text="SELL" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Column="5" Text="PROFIT" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Column="6" Text="DATA" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid>
+                        <ItemsControl ItemsSource="{Binding BestRoutes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="10,6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="1.4*"/>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="110"/>
+                                                <ColumnDefinition Width="80"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Start}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Commodity}" FontSize="10" Foreground="#b38600" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding SellAt}" FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding BuyText}" FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding SellText}" FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding ProfitText}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource SuccessGreen}" HorizontalAlignment="Right"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding TimeText}" FontSize="9" Foreground="{DynamicResource DarkModeSubtextBrush}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

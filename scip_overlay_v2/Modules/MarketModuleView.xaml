@@ -1,0 +1,149 @@
+<UserControl x:Class="ScipDashboard.Modules.MarketModuleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:ScipDashboard.Modules"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d"
+             Background="{DynamicResource BackgroundBrush}">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="0,0,0,20">
+            <!-- Header -->
+            <Border Padding="16" Background="{DynamicResource CardBrush}" BorderThickness="0,1,0,1" BorderBrush="#e0e0e0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="💰" FontSize="20" VerticalAlignment="Center"/>
+                    <TextBlock Text="Market Overview" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Commodity prices and trading opportunities" FontSize="10" Foreground="#95a5a6" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Coming Soon Notice -->
+            <Border Margin="16" Background="White" CornerRadius="4" BorderThickness="1" BorderBrush="#e0e0e0" Padding="24">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="⚠️  Market Module - Coming Soon" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="This module is currently under development." FontSize="12" Foreground="#666" Margin="0,0,0,16"/>
+                    
+                    <TextBlock Text="Planned Features:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,8"/>
+                    <ListView BorderThickness="0" Background="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="11" Foreground="#555" Margin="0,2,0,2"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.Items>
+                            <sys:String>📊 Real-time commodity price table with search and filtering</sys:String>
+                            <sys:String>📈 Interactive price history charts with selectable time ranges</sys:String>
+                            <sys:String>💰 Buy/Sell spread and margin calculations</sys:String>
+                            <sys:String>⭐ Watchlist for tracking favorite commodities</sys:String>
+                            <sys:String>📍 Location-based price comparison</sys:String>
+                            <sys:String>🔄 Multiple data source support (uexcorp.space, SC Trade Tools, etc.)</sys:String>
+                            <sys:String>⏰ Caching and offline mode</sys:String>
+                            <sys:String>📊 Sortable columns (price, margin, name, category, etc.)</sys:String>
+                        </ListView.Items>
+                    </ListView>
+                    
+                    <Border Margin="0,16,0,0" Height="1" Background="#e0e0e0"/>
+                    
+                    <TextBlock Text="The foundation is ready. Market data models, filtering, sorting, and chart rendering are all implemented." FontSize="10" Foreground="#888" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="Connect to data sources to enable full functionality." FontSize="10" Foreground="#888" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Placeholder Table -->
+            <Border Margin="16" Background="White" CornerRadius="4" BorderThickness="1" BorderBrush="#e0e0e0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Table Header -->
+                    <Border Grid.Row="0" Background="{DynamicResource CardBrush}" Padding="8" BorderThickness="0,0,0,1" BorderBrush="#e0e0e0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Commodity" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}"/>
+                            <TextBlock Text="Category" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Grid.Column="1"/>
+                            <TextBlock Text="Buy" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Grid.Column="2" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Sell" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Grid.Column="3" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Margin" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Grid.Column="4" HorizontalAlignment="Right"/>
+                            <TextBlock Text="Location" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Grid.Column="5"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Sample Data Placeholder -->
+                    <Border Grid.Row="1">
+                        <ListView BorderThickness="0">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="4,2">
+                                        <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                            <TextBlock Text="{Binding Icon}" FontSize="11"/>
+                                            <TextBlock Text=" " Width="4"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="11"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#666" Grid.Column="1"/>
+                                        <TextBlock Text="{Binding Buy, StringFormat='{}{0:0}'}" FontSize="11" Grid.Column="2" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="{Binding Sell, StringFormat='{}{0:0}'}" FontSize="11" Grid.Column="3" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="{Binding Margin, StringFormat='{}{0:0.##}%'}" FontSize="11" Grid.Column="4" HorizontalAlignment="Right" Foreground="{Binding MarginColor}"/>
+                                        <TextBlock Text="{Binding Location}" FontSize="11" Foreground="#666" Grid.Column="5"/>
+                                    </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                            <ListView.Items>
+                                <local:SampleCommodity Icon="⛏️" Name="Gold" Category="Minerals" Buy="150" Sell="165" Margin="10" MarginColor="Green" Location="Port Olisar"/>
+                                <local:SampleCommodity Icon="⚙️" Name="Titanium" Category="Industrial" Buy="80" Sell="95" Margin="18.75" MarginColor="Green" Location="Grim Hex"/>
+                                <local:SampleCommodity Icon="💎" Name="Diamonds" Category="Minerals" Buy="500" Sell="550" Margin="10" MarginColor="Green" Location="Leviathan"/>
+                                <local:SampleCommodity Icon="⚗️" Name="Quantium" Category="Minerals" Buy="400" Sell="450" Margin="12.5" MarginColor="Green" Location="Crayon"/>
+                                <local:SampleCommodity Icon="🌾" Name="Agri-Processing" Category="Agricultural" Buy="45" Sell="50" Margin="11.11" MarginColor="Green" Location="Port Olisar"/>
+                                <local:SampleCommodity Icon="⚙️" Name="Scrap" Category="Processed" Buy="15" Sell="20" Margin="33.33" MarginColor="Green" Location="Grim Hex"/>
+                                <local:SampleCommodity Icon="⚗️" Name="Stims" Category="Narcotics" Buy="200" Sell="280" Margin="40" MarginColor="Green" Location="Leviathan"/>
+                                <local:SampleCommodity Icon="⛏️" Name="Laranite" Category="Minerals" Buy="600" Sell="700" Margin="16.67" MarginColor="Green" Location="New Babbage"/>
+                            </ListView.Items>
+                        </ListView>
+                    </Border>
+                </Grid>
+            </Border>
+            
+            <!-- Filter Section -->
+            <Border Margin="16" Background="White" CornerRadius="4" BorderThickness="1" BorderBrush="#e0e0e0" Padding="16">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔍 Search:" FontSize="11" Foreground="{DynamicResource CharcoalBrush}" VerticalAlignment="Center"/>
+                    <TextBox Width="200" FontSize="11" Margin="8,0,0,0" BorderThickness="1" BorderBrush="#ddd"/>
+                    <ComboBox Width="120" FontSize="11" Margin="8,0,0,0" BorderThickness="1" BorderBrush="#ddd">
+                        <ComboBoxItem>All Categories</ComboBoxItem>
+                        <ComboBoxItem>Minerals</ComboBoxItem>
+                        <ComboBoxItem>Industrial</ComboBoxItem>
+                        <ComboBoxItem>Agricultural</ComboBoxItem>
+                        <ComboBoxItem>Processed</ComboBoxItem>
+                        <ComboBoxItem>Narcotics</ComboBoxItem>
+                    </ComboBox>
+                    <ComboBox Width="120" FontSize="11" Margin="8,0,0,0" BorderThickness="1" BorderBrush="#ddd">
+                        <ComboBoxItem>All Locations</ComboBoxItem>
+                        <ComboBoxItem>Port Olisar</ComboBoxItem>
+                        <ComboBoxItem>Grim Hex</ComboBoxItem>
+                        <ComboBoxItem>Leviathan</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
