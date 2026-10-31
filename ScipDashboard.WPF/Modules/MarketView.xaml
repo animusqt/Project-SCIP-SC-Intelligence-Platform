@@ -4,9 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.expression.blend/2008"
              xmlns:vm="clr-namespace:ScipDashboard.WPF.ViewModels"
+             xmlns:converters="clr-namespace:ScipDashboard.WPF.Converters"
              mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}"
              d:DataContext="{d:DesignInstance Type=vm:MarketViewModel}">
+
+    <UserControl.Resources>
+        <converters:MarginToColorConverter x:Key="MarginToColor"/>
+        <converters:RiskToColorConverter x:Key="RiskToColor"/>
+        <converters:TrendToColorConverter x:Key="TrendToColor"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="16,16,16,0">
@@ -93,7 +101,7 @@
             </Border>
 
             <!-- COMMODITY TABLE -->
-            <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4"
+            <Border Grid.IsSharedSizeScope="True" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4"
                     BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -105,13 +113,13 @@
                             BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" MinWidth="160"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="70"/>
-                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="*" MinWidth="160" SharedSizeGroup="ColCommodity"/>
+                                <ColumnDefinition Width="80" SharedSizeGroup="ColBuy"/>
+                                <ColumnDefinition Width="80" SharedSizeGroup="ColSell"/>
+                                <ColumnDefinition Width="80" SharedSizeGroup="ColMargin"/>
+                                <ColumnDefinition Width="80" SharedSizeGroup="ColVolume"/>
+                                <ColumnDefinition Width="70" SharedSizeGroup="ColRisk"/>
+                                <ColumnDefinition Width="80" SharedSizeGroup="ColTrend"/>
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Text="Commodity" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource MutedTextColor}" Grid.Column="0"/>
@@ -132,13 +140,13 @@
                                             Background="{DynamicResource CardBrush}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" MinWidth="160"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="70"/>
-                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="*" MinWidth="160" SharedSizeGroup="ColCommodity"/>
+                                                <ColumnDefinition Width="80" SharedSizeGroup="ColBuy"/>
+                                                <ColumnDefinition Width="80" SharedSizeGroup="ColSell"/>
+                                                <ColumnDefinition Width="80" SharedSizeGroup="ColMargin"/>
+                                                <ColumnDefinition Width="80" SharedSizeGroup="ColVolume"/>
+                                                <ColumnDefinition Width="70" SharedSizeGroup="ColRisk"/>
+                                                <ColumnDefinition Width="80" SharedSizeGroup="ColTrend"/>
                                             </Grid.ColumnDefinitions>
 
                                             <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"

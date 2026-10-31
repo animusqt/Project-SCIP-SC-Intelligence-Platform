@@ -54,27 +54,6 @@ namespace ScipDashboard.WPF.Converters
         }
     }
 
-    public class MarginToColorConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is decimal margin)
-            {
-                if (margin > 20) return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#27ae60"));
-                if (margin > 10) return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2ecc71"));
-                if (margin > 5) return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3498db"));
-                if (margin > 0) return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f39c12"));
-                return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#95a5a6"));
-            }
-            return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#95a5a6"));
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
     public class DecimalToCurrencyConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
