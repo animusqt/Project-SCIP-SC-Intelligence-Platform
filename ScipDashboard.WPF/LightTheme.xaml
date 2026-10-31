@@ -45,28 +45,28 @@
     <SolidColorBrush x:Key="BorderColor">#dbe4ee</SolidColorBrush>
     <SolidColorBrush x:Key="OrangeColor">#f5b32f</SolidColorBrush>
 
-    <!-- Gradient Brushes (Light Mode - deep navy HUD concept) -->
-    <LinearGradientBrush x:Key="GradientBackground" StartPoint="0,0" EndPoint="1,1">
+    <!-- Gradient Brushes (Light Mode - bottom-left to top-right) -->
+    <LinearGradientBrush x:Key="GradientBackground" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#f9fbff" Offset="0"/>
         <GradientStop Color="#e7edf6" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientCard" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientCard" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#ffffff" Offset="0"/>
         <GradientStop Color="#f4f7fa" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientHeader" StartPoint="0,0" EndPoint="1,0">
+    <LinearGradientBrush x:Key="GradientHeader" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#3ba8ff" Offset="0"/>
         <GradientStop Color="#6b9ff0" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientButton" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientButton" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#f5b32f" Offset="0"/>
         <GradientStop Color="#d97706" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientPanel" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientPanel" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#ffffff" Offset="0"/>
         <GradientStop Color="#eef3f9" Offset="1"/>
     </LinearGradientBrush>

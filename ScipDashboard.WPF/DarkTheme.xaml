@@ -10,9 +10,9 @@
     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#162235"/>
 
     <!-- Text Colors -->
-    <SolidColorBrush x:Key="PrimaryTextColor" Color="#f0f2f5"/>
-    <SolidColorBrush x:Key="SecondaryTextColor" Color="#e8edf2"/>
-    <SolidColorBrush x:Key="MutedTextColor" Color="#94a3b8"/>
+    <SolidColorBrush x:Key="PrimaryTextColor" Color="#ffffff"/>
+    <SolidColorBrush x:Key="SecondaryTextColor" Color="#e0e0e0"/>
+    <SolidColorBrush x:Key="MutedTextColor" Color="#b0b0b0"/>
 
     <!-- Accent Colors -->
     <SolidColorBrush x:Key="PrimaryAccentAmber" Color="#f5b32f"/>
@@ -45,28 +45,28 @@
     <SolidColorBrush x:Key="BorderColor">#27344d</SolidColorBrush>
     <SolidColorBrush x:Key="OrangeColor">#f5b32f</SolidColorBrush>
 
-    <!-- Gradient Brushes (Dark Mode - deep navy HUD concept) -->
-    <LinearGradientBrush x:Key="GradientBackground" StartPoint="0,0" EndPoint="1,1">
+    <!-- Gradient Brushes (Dark Mode - bottom-left to top-right) -->
+    <LinearGradientBrush x:Key="GradientBackground" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#070b12" Offset="0"/>
         <GradientStop Color="#131c28" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientCard" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientCard" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#162235" Offset="0"/>
         <GradientStop Color="#131c28" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientHeader" StartPoint="0,0" EndPoint="1,0">
+    <LinearGradientBrush x:Key="GradientHeader" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#3ba8ff" Offset="0"/>
         <GradientStop Color="#6b9ff0" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientButton" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientButton" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#f5b32f" Offset="0"/>
         <GradientStop Color="#d97706" Offset="1"/>
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="GradientPanel" StartPoint="0,0" EndPoint="0,1">
+    <LinearGradientBrush x:Key="GradientPanel" StartPoint="0,1" EndPoint="1,0">
         <GradientStop Color="#162235" Offset="0"/>
         <GradientStop Color="#131c28" Offset="1"/>
     </LinearGradientBrush>
