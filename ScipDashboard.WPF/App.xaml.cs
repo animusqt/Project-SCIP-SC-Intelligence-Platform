@@ -200,14 +200,10 @@ namespace ScipDashboard
                 foreach (var rd in toRemove)
                     dict.Remove(rd);
 
-                // Add theme first, then Styles (so theme colors resolve first)
-                string themeFile = themeName.Equals("Dark", StringComparison.OrdinalIgnoreCase)
-                    ? "DarkTheme.xaml"
-                    : "LightTheme.xaml";
-
+                // Always add LightTheme only (Dark theme disabled)
                 var themeDict = new ResourceDictionary
                 {
-                    Source = new Uri($"pack://application:,,,/ScipDashboard.WPF;component/{themeFile}", UriKind.Absolute)
+                    Source = new Uri("pack://application:,,,/ScipDashboard.WPF;component/LightTheme.xaml", UriKind.Absolute)
                 };
                 dict.Add(themeDict);
 

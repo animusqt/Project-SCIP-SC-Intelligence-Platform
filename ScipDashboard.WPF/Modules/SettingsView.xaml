@@ -22,8 +22,6 @@
                     <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16" Margin="0,0,0,16">
                         <StackPanel Orientation="Vertical">
                             <TextBlock Text="Theme" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                            <RadioButton Content="🌙 Dark Mode" IsChecked="{Binding IsDarkModeSelected, Mode=TwoWay}" FontSize="12" Margin="0,4,0,4"
-                                         Foreground="{DynamicResource PrimaryTextColor}"/>
                             <RadioButton Content="☀️ Light Mode" IsChecked="{Binding IsLightModeSelected, Mode=TwoWay}" FontSize="12" Margin="0,4,0,4"
                                          Foreground="{DynamicResource PrimaryTextColor}"/>
                         </StackPanel>
