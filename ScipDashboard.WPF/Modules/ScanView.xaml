@@ -83,11 +83,14 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Content="SCAN &amp; UPDATE MARKET" Command="{Binding ScanInputCommand}"
                                 Style="{StaticResource ScanButtonStyle}" Margin="0,0,8,0"
-                                IsEnabled="{Binding IsProcessing, Converter={StaticResource InverseBoolToVisibility}}"/>
+                                IsEnabled="{Binding IsProcessing, Converter={StaticResource BoolNegation}}"/>
                         <Button Content="Clear" Command="{Binding ClearCommand}"
                                 Style="{StaticResource ClearButtonStyle}"/>
+                        <Button Content="Browse File..." Command="{Binding BrowseFileCommand}"
+                                Style="{StaticResource ClearButtonStyle}" Margin="8,0,0,0"/>
                     </StackPanel>
                     
+                    <TextBlock Text="{Binding ScanFileName}" FontSize="10" Foreground="{DynamicResource MutedTextColor}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding StatusMessage}" FontSize="11" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,8,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>

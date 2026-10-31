@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -19,6 +20,7 @@ namespace ScipDashboard.WPF.ViewModels
     {
         private readonly IDataService _dataService;
         private string _scanInput = string.Empty;
+        private string _scanFileName = string.Empty;
         private string _statusMessage = string.Empty;
         private bool _isProcessing;
         private ObservableCollection<ScanResultItem> _results = new();
@@ -28,12 +30,19 @@ namespace ScipDashboard.WPF.ViewModels
             _dataService = dataService;
             ScanInputCommand = new RelayCommand(async _ => await ProcessScanInputAsync());
             ClearCommand = new RelayCommand(_ => ClearScan());
+            BrowseFileCommand = new RelayCommand(async _ => await BrowseFileAsync());
         }
 
         public string ScanInput
         {
             get => _scanInput;
             set { if (_scanInput != value) { _scanInput = value; OnPropertyChanged(); } }
+        }
+
+        public string ScanFileName
+        {
+            get => _scanFileName;
+            set { if (_scanFileName != value) { _scanFileName = value; OnPropertyChanged(); } }
         }
 
         public string StatusMessage
@@ -100,6 +109,7 @@ namespace ScipDashboard.WPF.ViewModels
 
         public ICommand ScanInputCommand { get; }
         public ICommand ClearCommand { get; }
+        public ICommand BrowseFileCommand { get; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -111,7 +121,7 @@ namespace ScipDashboard.WPF.ViewModels
         {
             if (string.IsNullOrWhiteSpace(ScanInput))
             {
-                StatusMessage = "Please paste scanner data (JSON or CSV) to scan.";
+                StatusMessage = "Please paste scanner data (JSON, CSV, JS, PY) or upload a file to scan.";
                 return;
             }
 
@@ -130,10 +140,8 @@ namespace ScipDashboard.WPF.ViewModels
                         return;
                     }
 
-                    // Apply scan data to market data service
                     foreach (var item in parsed)
                     {
-                        // Update existing commodity price observations
                         _dataService.UpdateCommodityPriceAsync(
                             item.CommodityId,
                             item.LocationId,
@@ -167,9 +175,39 @@ namespace ScipDashboard.WPF.ViewModels
             }
         }
 
+        private async Task BrowseFileAsync()
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Scanner data files (*.json;*.csv;*.js;*.py;*.txt)|*.json;*.csv;*.js;*.py;*.txt|All files (*.*)|*.*",
+                    Title = "Select scanner data file",
+                    Multiselect = false
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    try
+                    {
+                        var filePath = dialog.FileName;
+                        ScanFileName = System.IO.Path.GetFileName(filePath);
+                        var fileContent = System.IO.File.ReadAllText(filePath);
+                        ScanInput = fileContent;
+                        StatusMessage = $"Loaded {filePath}";
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusMessage = $"File load error: {ex.Message}";
+                    }
+                }
+            });
+        }
+
         private void ClearScan()
         {
             ScanInput = string.Empty;
+            ScanFileName = string.Empty;
             Results.Clear();
             StatusMessage = string.Empty;
         }
@@ -178,7 +216,6 @@ namespace ScipDashboard.WPF.ViewModels
         {
             var results = new List<ScanResultItem>();
 
-            // Try JSON first
             try
             {
                 var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -187,75 +224,173 @@ namespace ScipDashboard.WPF.ViewModels
                 {
                     foreach (var s in jsonScan)
                     {
-                        results.Add(new ScanResultItem
-                        {
-                            CommodityId = s.CommodityId ?? "unknown",
-                            CommodityName = s.CommodityName ?? s.CommodityId ?? "unknown",
-                            LocationId = s.LocationId ?? "unknown",
-                            LocationName = s.LocationName ?? s.LocationId ?? "unknown",
-                            SystemName = s.SystemName ?? "Unknown",
-                            BuyPrice = s.BuyPrice,
-                            SellPrice = s.SellPrice,
-                            Volume = s.Volume,
-                            DemandVolume = s.DemandVolume,
-                            Margin = s.BuyPrice > 0 ? Math.Round(((s.SellPrice - s.BuyPrice) / s.BuyPrice) * 100, 2) : 0m,
-                            Timestamp = s.Timestamp == default ? DateTime.UtcNow : s.Timestamp,
-                            SourceName = "SCANNER",
-                            Status = "Updated"
-                        });
+                        results.Add(MapScanDataToResult(s));
                     }
                     return results;
                 }
             }
-            catch { /* fall through to CSV */ }
+            catch { }
 
-            // Try CSV format: CommodityId,CommodityName,LocationId,LocationName,SystemName,BuyPrice,SellPrice,Volume,DemandVolume
-            var lines = input.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length > 1)
+            var jsResult = ParseJsFormat(input);
+            if (jsResult.Count > 0) return jsResult;
+
+            var pyResult = ParsePythonFormat(input);
+            if (pyResult.Count > 0) return pyResult;
+
+            var csvResult = ParseCsvFormat(input);
+            if (csvResult.Count > 0) return csvResult;
+
+            return results;
+        }
+
+        private List<ScanResultItem> ParseJsFormat(string input)
+        {
+            var results = new List<ScanResultItem>();
+
+            try
             {
-                var headers = lines[0].Split(',');
-                bool hasHeader = headers.Length > 1 && headers[0].ToLower().Contains("commodity");
-                int startIndex = hasHeader ? 1 : 0;
-
-                for (int i = startIndex; i < lines.Length; i++)
+                var arrayMatch = Regex.Match(input, @"(?:const|let|var|module\.exports|export\s+default)\s+(\w+)\s*=\s*(\[[\s\S]*?\])\s*;?", RegexOptions.Multiline);
+                if (!arrayMatch.Success)
                 {
-                    var cols = lines[i].Split(',');
-                    if (cols.Length < 8) continue;
-
-                    try
-                    {
-                        var commodityId = cols[0].Trim('"', ' ');
-                        var commodityName = cols[1].Trim('"', ' ');
-                        var locationId = cols[2].Trim('"', ' ');
-                        var locationName = cols[3].Trim('"', ' ');
-                        var systemName = cols[3].Trim('"', ' ');
-                        var buyPrice = decimal.Parse(cols[4].Trim('"', ' '));
-                        var sellPrice = decimal.Parse(cols[5].Trim('"', ' '));
-                        var volume = int.Parse(cols[6].Trim('"', ' '));
-                        var demandVolume = int.Parse(cols[7].Trim('"', ' '));
-
-                        results.Add(new ScanResultItem
-                        {
-                            CommodityId = commodityId,
-                            CommodityName = commodityName,
-                            LocationId = locationId,
-                            LocationName = locationName,
-                            SystemName = systemName,
-                            BuyPrice = buyPrice,
-                            SellPrice = sellPrice,
-                            Volume = volume,
-                            DemandVolume = demandVolume,
-                            Margin = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
-                            Timestamp = DateTime.UtcNow,
-                            SourceName = "SCANNER",
-                            Status = "Updated"
-                        });
-                    }
-                    catch { /* skip malformed rows */ }
+                    arrayMatch = Regex.Match(input, @"(\[[\s\S]*?\])");
+                    if (!arrayMatch.Success) return results;
                 }
+
+                var arrayContent = arrayMatch.Groups[2].Success ? arrayMatch.Groups[2].Value : arrayMatch.Groups[1].Value;
+                arrayContent = CleanJsArrayContent(arrayContent);
+
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var jsonScan = JsonSerializer.Deserialize<ScanData[]>(arrayContent, jsonOptions);
+                if (jsonScan != null && jsonScan.Length > 0)
+                {
+                    foreach (var s in jsonScan)
+                    {
+                        results.Add(MapScanDataToResult(s));
+                    }
+                    return results;
+                }
+            }
+            catch { }
+
+            return results;
+        }
+
+        private List<ScanResultItem> ParsePythonFormat(string input)
+        {
+            var results = new List<ScanResultItem>();
+
+            try
+            {
+                var listMatch = Regex.Match(input, @"(?:COMMODITY_DATA|data|prices|commodities)\s*=\s*(\[[\s\S]*?\])", RegexOptions.Multiline);
+                if (!listMatch.Success)
+                {
+                    listMatch = Regex.Match(input, @"(\[[\s\S]*?\])");
+                    if (!listMatch.Success) return results;
+                }
+
+                var listContent = listMatch.Groups[1].Value;
+                listContent = CleanPythonListContent(listContent);
+
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var jsonScan = JsonSerializer.Deserialize<ScanData[]>(listContent, jsonOptions);
+                if (jsonScan != null && jsonScan.Length > 0)
+                {
+                    foreach (var s in jsonScan)
+                    {
+                        results.Add(MapScanDataToResult(s));
+                    }
+                    return results;
+                }
+            }
+            catch { }
+
+            return results;
+        }
+
+        private List<ScanResultItem> ParseCsvFormat(string input)
+        {
+            var results = new List<ScanResultItem>();
+
+            var lines = input.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length < 2) return results;
+
+            var headers = lines[0].Split(',').Select(h => h.Trim('"', ' ', '\t').ToLowerInvariant()).ToList();
+            int startIndex = headers.Contains("commodityid") || headers.Contains("commodity") ? 1 : 0;
+
+            for (int i = startIndex; i < lines.Length; i++)
+            {
+                var cols = lines[i].Split(',');
+                if (cols.Length < 8) continue;
+
+                try
+                {
+                    var commodityId = cols[0].Trim('"', ' ');
+                    var commodityName = cols[1].Trim('"', ' ');
+                    var locationId = cols[2].Trim('"', ' ');
+                    var locationName = cols[3].Trim('"', ' ');
+                    var systemName = cols.Length > 4 ? cols[4].Trim('"', ' ') : locationName;
+                    var buyPrice = decimal.Parse(cols.Length > 5 ? cols[5].Trim('"', ' ') : "0");
+                    var sellPrice = decimal.Parse(cols.Length > 6 ? cols[6].Trim('"', ' ') : "0");
+                    var volume = int.TryParse(cols.Length > 7 ? cols[7].Trim('"', ' ') : "0", out int v) ? v : 0;
+                    var demandVolume = int.TryParse(cols.Length > 8 ? cols[8].Trim('"', ' ') : "0", out int d) ? d : 0;
+
+                    results.Add(new ScanResultItem
+                    {
+                        CommodityId = commodityId,
+                        CommodityName = commodityName,
+                        LocationId = locationId,
+                        LocationName = locationName,
+                        SystemName = systemName,
+                        BuyPrice = buyPrice,
+                        SellPrice = sellPrice,
+                        Volume = volume,
+                        DemandVolume = demandVolume,
+                        Margin = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
+                        Timestamp = DateTime.UtcNow,
+                        SourceName = "SCANNER",
+                        Status = "Updated"
+                    });
+                }
+                catch { }
             }
 
             return results;
+        }
+
+        private string CleanJsArrayContent(string content)
+        {
+            content = Regex.Replace(content, @"//.*?$", "", RegexOptions.Multiline);
+            content = Regex.Replace(content, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            content = Regex.Replace(content, @"^\s*(?:const|let|var|module\.exports|export\s+default)\s+\w+\s*=\s*", "", RegexOptions.Multiline);
+            content = content.TrimEnd(';', ' ', '\t', '\r', '\n');
+            return content.Trim();
+        }
+
+        private string CleanPythonListContent(string content)
+        {
+            content = Regex.Replace(content, @"#.*?$", "", RegexOptions.Multiline);
+            content = content.TrimEnd(';', ' ', '\t', '\r', '\n');
+            return content.Trim();
+        }
+
+        private ScanResultItem MapScanDataToResult(ScanData s)
+        {
+            return new ScanResultItem
+            {
+                CommodityId = s.CommodityId ?? "unknown",
+                CommodityName = s.CommodityName ?? s.CommodityId ?? "unknown",
+                LocationId = s.LocationId ?? "unknown",
+                LocationName = s.LocationName ?? s.LocationId ?? "unknown",
+                SystemName = s.SystemName ?? "Unknown",
+                BuyPrice = s.BuyPrice,
+                SellPrice = s.SellPrice,
+                Volume = s.Volume,
+                DemandVolume = s.DemandVolume,
+                Margin = s.BuyPrice > 0 ? Math.Round(((s.SellPrice - s.BuyPrice) / s.BuyPrice) * 100, 2) : 0m,
+                Timestamp = s.Timestamp == default ? DateTime.UtcNow : s.Timestamp,
+                SourceName = "SCANNER",
+                Status = "Updated"
+            };
         }
 
         private void DispatcherInvoke(Action action)
