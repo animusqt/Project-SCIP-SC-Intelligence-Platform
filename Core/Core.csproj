@@ -21,6 +21,7 @@
   <ItemGroup>
     <!-- Explicit source files - Models first to ensure types are compiled before Services reference them -->
     <Compile Include="Models\Models.cs" />
+    <Compile Include="Models\SupabaseModels.cs" />
     <Compile Include="Common\*.cs" />
     <Compile Include="Data\*.cs" />
     <Compile Include="Services\*.cs" />

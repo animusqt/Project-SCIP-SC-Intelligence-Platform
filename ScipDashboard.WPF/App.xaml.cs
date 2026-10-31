@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Threading;
 using ScipDashboard.Core.Data;
 using ScipDashboard.Core.Services;
+using ScipDashboard.WPF.Services;
 
 namespace ScipDashboard
 {
@@ -46,6 +47,9 @@ namespace ScipDashboard
     {
         public static ServiceLocator Services { get; } = new();
         public static IAppSettings? AppSettings { get; set; }
+        public static SupabaseAuthService? AuthService { get; set; }
+        public static SupabaseClient? SupabaseClient { get; set; }
+        public static SupabaseConfig? SupabaseConfig { get; set; }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -55,15 +59,46 @@ namespace ScipDashboard
             Dispatcher.UnhandledException += OnDispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
 
-            System.Console.WriteLine("[App] Starting application - no services required");
+            System.Console.WriteLine("[App] Starting application");
+
+            // Load Supabase configuration
+            SupabaseConfig = LoadSupabaseConfig();
 
             // Register core services
             var dataService = new DataService();
             Services.Register<IDataService>(dataService);
             Services.Register<IMarketDataService>(new MarketDataService(dataService));
-            Services.Register<IAppSettings>(new InMemoryAppSettings());
 
-            // Seed sample market data so views have something to display (synchronous to avoid race)
+            // Initialize Supabase if configured
+            if (SupabaseConfig != null && SupabaseConfig.IsEnabled && SupabaseConfig.IsConfigured)
+            {
+                try
+                {
+                    var supabaseClient = new SupabaseClient(SupabaseConfig.SupabaseUrl, SupabaseConfig.ApiKey);
+                    SupabaseClient = supabaseClient;
+                    Services.Register<SupabaseClient>(supabaseClient);
+
+                    var authService = new SupabaseAuthService(supabaseClient);
+                    AuthService = authService;
+                    Services.Register<SupabaseAuthService>(authService);
+
+                    System.Console.WriteLine("[App] Supabase initialized successfully");
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"[App] Supabase initialization failed: {ex.Message}");
+                }
+            }
+            else
+            {
+                System.Console.WriteLine("[App] Supabase not configured - running in local-only mode");
+            }
+
+            // Register settings
+            Services.Register<IAppSettings>(new InMemoryAppSettings());
+            AppSettings = Services.Get<IAppSettings>();
+
+            // Seed sample market data so views have something to display
             SeedSampleDataAsync(dataService).GetAwaiter().GetResult();
 
             // Apply saved theme on startup
@@ -98,6 +133,30 @@ namespace ScipDashboard
 
                 Environment.Exit(1);
             }
+        }
+
+        private static SupabaseConfig LoadSupabaseConfig()
+        {
+            // Try to read from environment variables first, then fall back to default
+            var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
+            var key = Environment.GetEnvironmentVariable("SUPABASE_API_KEY");
+
+            if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(key))
+            {
+                return new SupabaseConfig
+                {
+                    SupabaseUrl = url,
+                    ApiKey = key,
+                    IsEnabled = true
+                };
+            }
+
+            return new SupabaseConfig
+            {
+                SupabaseUrl = string.Empty,
+                ApiKey = string.Empty,
+                IsEnabled = false
+            };
         }
 
         // Global exception handlers - prevent error popups from crashing the app

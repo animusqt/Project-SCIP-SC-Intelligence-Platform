@@ -1,6 +1,6 @@
 # SCIP Dashboard — Remaining Work Todo List
 
-**Project:** `D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\` (`ScipDashboard.WPF` + `Core`)
+**Project:** `D:\Project_SCIP\SCIP\Dashboard\` (`ScipDashboard.WPF` + `Core`)
 **Status:** ALL TODO ITEMS COMPLETED (2026-10-31). Builds cleanly (0 errors, pre-existing nullable warnings only), publishes to `Publish\`.
 
 **Test Results (2026-10-31):**
@@ -91,6 +91,33 @@ Reviewed https://sc-truckers.lovable.app/ for commodity, station, ship, componen
 - Real systems: Stanton, Pyro, Nyx
 - Prices via uexcorp.space
 
+### 9b. Supabase Integration (COMPLETED - Infrastructure)
+**Goal:** Add Supabase backend for user auth, settings sync, watchlist, routes, and fleet across devices.
+
+Files created:
+- `Core/Models/SupabaseModels.cs` — Database table models (user_settings, user_watchlist, user_routes, user_fleet, market_snapshots)
+- `Core/Data/ISupabaseDataService.cs` — Interface for Supabase data operations
+- `Core/Data/SupabaseDataService.cs` — Implementation using Supabase REST API via HttpClient
+- `Core/Data/SupabaseClient.cs` — HTTP client wrapper for Supabase REST API
+- `Core/Data/SupabaseConfig.cs` — Configuration (URL, API key, enabled flag)
+- `ScipDashboard.WPF/Services/SupabaseAuthService.cs` — Authentication (sign in, sign up, sign out)
+- `supabase_schema.sql` — SQL schema to run in Supabase dashboard
+
+Setup steps:
+1. Create a Supabase project at https://app.supabase.com
+2. Run `supabase_schema.sql` in your Supabase SQL Editor
+3. Set environment variables: `SUPABASE_URL` and `SUPABASE_API_KEY`
+4. Supabase auto-enables when both env vars are present and `IsEnabled = true`
+
+Features enabled:
+- User authentication (email/password login/signup)
+- User settings sync (theme, auto-refresh, data source, notifications)
+- Cross-device watchlist (commodities to track with target prices)
+- Saved hauling routes (sync across devices)
+- Fleet tracking (ships, capacity, profit)
+- Market snapshot caching (shared UEXCorp data)
+- Row Level Security (users only see their own data)
+
 ### 10. Update / Changelog Clause (COMPLETED)
 - Added `CHANGELOG.md` at repo root with date, changes, files, build status
 - Full changelog recorded in `D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\CHANGELOG.md`
@@ -99,9 +126,9 @@ Reviewed https://sc-truckers.lovable.app/ for commodity, station, ship, componen
 
 ### Verification Commands
 ```powershell
-dotnet build "D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\Core\Core.csproj"
-dotnet build "D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\ScipDashboard.WPF\ScipDashboard.WPF.csproj"
-dotnet publish "D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\ScipDashboard.WPF\ScipDashboard.WPF.csproj" --configuration Release --output "D:\SCIP Projects\SCIP Dashboard\scip_overlay_v2\Publish"
+dotnet build "D:\Project_SCIP\SCIP\Dashboard\Core\Core.csproj"
+dotnet build "D:\Project_SCIP\SCIP\Dashboard\ScipDashboard.WPF\ScipDashboard.WPF.csproj"
+dotnet publish "D:\Project_SCIP\SCIP\Dashboard\ScipDashboard.WPF\ScipDashboard.WPF.csproj" --configuration Release --output "D:\Project_SCIP\SCIP\Dashboard\Publish"
 Get-Process -Name "ScipDashboard*" -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
@@ -118,3 +145,10 @@ Get-Process -Name "ScipDashboard*" -ErrorAction SilentlyContinue | Stop-Process 
 - `Modules\SalvageView.xaml` + `ViewModels\SalvageViewModel.cs` — salvaging tab
 - `Modules\SettingsView.xaml` + `ViewModels\SettingsViewModel.cs` — settings with login
 - `Converters\*.cs` — value converters (return `SolidColorBrush`, not hex strings)
+- `Core/Data/SupabaseClient.cs` — Supabase REST API HTTP client wrapper
+- `Core/Data/SupabaseDataService.cs` — Supabase data operations (settings, watchlist, routes, fleet, snapshots)
+- `Core/Data/ISupabaseDataService.cs` — Supabase data service interface
+- `Core/Data/SupabaseConfig.cs` — Supabase configuration (URL, API key)
+- `Core/Models/SupabaseModels.cs` — Supabase database table models
+- `ScipDashboard.WPF/Services/SupabaseAuthService.cs` — Supabase authentication (login, signup, logout)
+- `supabase_schema.sql` — SQL schema for Supabase project setup

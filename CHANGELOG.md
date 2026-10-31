@@ -74,3 +74,14 @@
 - `dotnet build WPF` — 0 errors, pre-existing nullable warnings only ✅
 - `dotnet publish` — successful to `Publish\` ✅
 - App launch — `MainWindow` displayed successfully ✅
+
+### Supabase Integration
+- Added `SupabaseClient` — HTTP client wrapper for Supabase REST API (auth + data)
+- Added `SupabaseAuthService` — Email/password login, signup, logout with session management
+- Added `ISupabaseDataService` / `SupabaseDataService` — CRUD for user_settings, user_watchlist, user_routes, user_fleet, market_snapshots
+- Added `SupabaseConfig` — Configuration via environment variables (SUPABASE_URL, SUPABASE_API_KEY)
+- Added `SupabaseModels` — Database table models for all Supabase tables
+- Added `supabase_schema.sql` — SQL schema with Row Level Security policies
+- App.xaml.cs — Initializes Supabase client on startup when env vars are present
+- Features: cross-device settings sync, watchlist, saved routes, fleet tracking, market snapshot caching
+
