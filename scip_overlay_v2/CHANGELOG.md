@@ -27,6 +27,18 @@
 - Robust data loading: UEXCorp live API (10s timeout) with cached/sample fallback
 - `MarketDataService` HTTP timeout reduced from 30s to 10s
 
+### SC-Truckers Source Data Integration (matches sc-truckers.lovable.app/assets/market-wEU3tnqz.js)
+- `DataService.SeederScTruckersData()` seeds 21 real SC-Truckers commodities:
+  - Metal / Ore: Quantanium, Laranite, Titanium, Tungsten, Iron, Gold, Diamond, Copper, Aluminum, Beryl, Borase
+  - Bio / Contraband: Altruciatoxin, Medsticks, Neon
+  - Agricultural: Agricium, Golden Medmon
+  - Gas / Fuel: Hydrogen, Helium, Methane
+  - Salvage / Industrial: Waste, Scrap, Ship Parts
+- SC-Truckers stations seeded: Area18, Lorville, Everus Harbor, New Babbage, Baijini Point, Port Tressler, Orison
+- Price observations link each commodity to every station with per-station pricing variations
+- Commodity categories match SC-Truckers category mapping logic exactly
+- `GetMarketDataAsync()` builds market data from seeded commodities when no API data available
+
 ### Hauling
 - Max Box options changed to `(1, 2, 4, 8, 16, 24, 32)`
 - All flyable routes display (removed `.Take(20)` Best Routes limit and `.Take(6)` loop options limit)
