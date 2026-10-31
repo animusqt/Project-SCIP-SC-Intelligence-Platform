@@ -1,0 +1,159 @@
+SC DATAHUB — STAR CITIZEN COMMODITY LIST
+Source: https://www.sc-datahub.com/tools/commodities
+Source page: Commodities
+Source patch shown: 4.10.2
+Source refresh shown: 13 October 2026
+Retrieved: 31 October 2026
+
+FORMAT
+Commodity | Type | Buy / SCU | Sell / SCU | Margin / SCU
+
+NOTES
+- Prices are copied from the source page's default commodity table.
+- A dash (—) means the source did not show a price for that field.
+- Margins are the source's displayed Margin / SCU, not a guarantee of profit on a particular route.
+- The source says prices refresh server-side every 24 hours.
+- This export omits entries classified as drugs, vice, explosives, ammunition, or illegal.
+- Raw variants are hidden in the source page's default view.
+- This is a filtered reference list, not the full 206-entry source catalog.
+
+COMMODITIES
+AcryliPlex Composite | Man-made | — | — | —
+Agricium | Metal | — | 10,000 aUEC | 10,000 aUEC
+Agricultural Supplies | Agricultural | 1,031 aUEC | 1,300 aUEC | 269 aUEC
+Aluminum | Metal | 2,958 aUEC | 3,800 aUEC | 842 aUEC
+Ammonia | Raw Materials | — | 1,000 aUEC | 1,000 aUEC
+Anti-Hydrogen | Gas | — | — | —
+Aphorite | Mineral | — | 94,000 aUEC | 94,000 aUEC
+Apoxygenite | Chemical | — | — | —
+Argon | Gas | — | 460 aUEC | 460 aUEC
+Arsenic | Non-Metal | — | — | —
+Aslarite | Mineral | — | 5,100 aUEC | 5,100 aUEC
+Astatine | Halogen | 2,760 aUEC | 3,575 aUEC | 815 aUEC
+Atacamite | Mineral | — | — | —
+Atlasium | Metal | — | 89,000 aUEC | 89,000 aUEC
+Audio-Visual Equipment | Temporary | — | 32,833 aUEC | 32,833 aUEC
+Beradom | Mineral | — | 132,000 aUEC | 132,000 aUEC
+Beryl | Mineral | — | 20,000 aUEC | 20,000 aUEC
+Bexalite | Mineral | — | 28,333 aUEC | 28,333 aUEC
+Bioplastic | Man-made | — | 7,300 aUEC | 7,300 aUEC
+Blue Bilva | Food | — | — | —
+Borase | Metal | — | 28,000 aUEC | 28,000 aUEC
+Boron | Non-Metal | — | — | —
+Cadmium Allinide | Man-made | — | — | —
+Caranite | Mineral | — | — | —
+Carbon | Raw Materials | 269 aUEC | 350 aUEC | 81 aUEC
+Carbon-Silk | Natural | — | 20,000 aUEC | 20,000 aUEC
+Carinite | Mineral | — | — | —
+Carinite (Pure) | Mineral | — | — | —
+Cave Kopion Horn | Medical | — | — | —
+Chlorine | Halogen | — | 1,500 aUEC | 1,500 aUEC
+CK13-GID Seed Blend | Seed | 2,500 aUEC | 8,700 aUEC | 6,200 aUEC
+Coal | Non-Metal | — | — | —
+Cobalt | Mineral | 19,140 aUEC | 20,000 aUEC | 860 aUEC
+Compboard | Scrap | — | 29,000 aUEC | 29,000 aUEC
+Construction Material Pebbles | Scrap | — | — | —
+Construction Material Rubble | Scrap | — | — | —
+Construction Material Salvage | Scrap | — | — | —
+Construction Materials | Scrap | — | 12,500 aUEC | 12,500 aUEC
+Construction Pieces | Scrap | — | — | —
+Copper | Metal | 3,325 aUEC | 3,700 aUEC | 375 aUEC
+Corundum | Mineral | — | 3,780 aUEC | 3,780 aUEC
+Crude Oil | Non-Metal | — | — | —
+CryoPod | Medical | — | — | —
+Decari Pod | Natural | — | — | —
+Degnous Root | Natural | — | 53,000 aUEC | 53,000 aUEC
+Diamond | Metal | — | 7,500 aUEC | 7,500 aUEC
+Diamond Laminate | Man-made | — | 80,000 aUEC | 80,000 aUEC
+Diluthermex | Man-made | — | — | —
+Dolivine | Mineral | — | 134,286 aUEC | 134,286 aUEC
+DynaFlex | Man-Made | — | 1,900 aUEC | 1,900 aUEC
+Elespo | Man-made | 6,000 aUEC | 18,500 aUEC | 12,500 aUEC
+Feynmaline | Mineral | — | 302,000 aUEC | 302,000 aUEC
+Fluorine | Halogen | — | 1,240 aUEC | 1,240 aUEC
+Fresh Food | Food | — | 24,000 aUEC | 24,000 aUEC
+Glacosite | Mineral | — | 88,000 aUEC | 88,000 aUEC
+Gold | Metal | — | 31,500 aUEC | 31,500 aUEC
+Golden Medmon | Natural | — | 54,000 aUEC | 54,000 aUEC
+Hadanite | Mineral | — | 485,000 aUEC | 485,000 aUEC
+Heart of the Woods | Natural | — | 35,000 aUEC | 35,000 aUEC
+Helium | Gas | — | 1,100 aUEC | 1,100 aUEC
+Hephaestanite | Mineral | 3,966 aUEC | 4,840 aUEC | 874 aUEC
+HexaPolyMesh Coating | Crafting | — | 1 aUEC | 1 aUEC
+Hydrogen | Gas | 782 aUEC | 1,040 aUEC | 258 aUEC
+Hydrogen Fuel | Fuel | 782 aUEC | — | -782 aUEC
+Inert Materials | Other | — | 4 aUEC | 4 aUEC
+Iodine | Halogen | — | 11,000 aUEC | 11,000 aUEC
+Iron | Metal | — | 3,400 aUEC | 3,400 aUEC
+Irradiated Kopion Horn | Natural | — | — | —
+Jaclium | Mineral | — | — | —
+Jahlium | Metal | — | — | —
+Janalite | Mineral | — | 1,300,000 aUEC | 1,300,000 aUEC
+Jumping Limes | Food | — | — | —
+Kopion Horn | Medical | — | 32,000 aUEC | 32,000 aUEC
+Krypton | Gas | — | — | —
+Laranite | Metal | 7,400 aUEC | 9,150 aUEC | 1,750 aUEC
+Lastaphrene | Man-made | — | — | —
+Lindinium | Metal | — | 51,000 aUEC | 51,000 aUEC
+Luminalia Gift | Temporary | — | 5,250,000 aUEC | 5,250,000 aUEC
+Lunes | Food | — | — | —
+Lycara | Man-made | — | — | —
+Magnesium | Metal | — | — | —
+Marok Gem | Animal | — | 40,000 aUEC | 40,000 aUEC
+Medical Supplies | Medical | 3,971 aUEC | 5,175 aUEC | 1,204 aUEC
+Mercury | Metal | — | 1,000 aUEC | 1,000 aUEC
+Methane | Gas | — | 3,700 aUEC | 3,700 aUEC
+Molina Mold Samples | Medicine | — | — | —
+Molina Mold Treatment | Medicine | — | — | —
+Molina Ventilation Filters | Medicine | — | — | —
+Neograph | Man-made | — | 78,000 aUEC | 78,000 aUEC
+Nitrogen | Gas | — | 3,100 aUEC | 3,100 aUEC
+Omnapoxy | Man-made | — | 4,625 aUEC | 4,625 aUEC
+Organics | Organics | 9,988 aUEC | 12,333 aUEC | 2,345 aUEC
+Ouratite | Mineral | — | 46,000 aUEC | 46,000 aUEC
+Partillium | Gas | 82,192 aUEC | 91,043 aUEC | 8,851 aUEC
+Party Favors | Temporary | — | 4,460 aUEC | 4,460 aUEC
+Phosphorus | Non-Metal | — | — | —
+Pitambu | Food | 50,484 aUEC | 60,882 aUEC | 10,398 aUEC
+Potassium | Mineral | — | 560 aUEC | 560 aUEC
+Pressurized Ice | Raw Materials | — | 5,100 aUEC | 5,100 aUEC
+Processed Food | Food | 1,202 aUEC | 1,480 aUEC | 278 aUEC
+Prota | Natural | — | 54,000 aUEC | 54,000 aUEC
+Quantainium | Mineral | — | 150,000 aUEC | 150,000 aUEC
+Quartz | Metal | 3,428 aUEC | 4,400 aUEC | 972 aUEC
+Ranta Dung | Agricultural | — | 32,333 aUEC | 32,333 aUEC
+Recycled Material Composite | Scrap | 7,587 aUEC | 6,000 aUEC | -1,587 aUEC
+Revenant Pod | Natural | — | 9,427 aUEC | 9,427 aUEC
+Revenant Tree Pollen | Natural | — | 1,333 aUEC | 1,333 aUEC
+Riccite | Metal | — | 65,667 aUEC | 65,667 aUEC
+Sadaryx | Mineral | — | 500,000 aUEC | 500,000 aUEC
+Sarilus | Man-made | — | — | —
+Savrilium | Metal | — | 122,381 aUEC | 122,381 aUEC
+Scrap | Scrap | 3,063 aUEC | 3,533 aUEC | 470 aUEC
+Selenium | Non-Metal | — | — | —
+Silicon | Raw Materials | — | 2,400 aUEC | 2,400 aUEC
+Silnex | Man-made | — | — | —
+Souvenirs | Temporary | — | 18,400 aUEC | 18,400 aUEC
+Steel | Alloy | 1,376 aUEC | 1,900 aUEC | 524 aUEC
+Stileron | Mineral | — | 136,667 aUEC | 136,667 aUEC
+Stone Bug Shell | Natural | — | — | —
+Sunset Berries | Natural | — | 79,000 aUEC | 79,000 aUEC
+Taranite | Mineral | — | 27,333 aUEC | 27,333 aUEC
+Tellurium | Non-Metal | — | — | —
+Thermalfoam | Man-made | — | 6,100 aUEC | 6,100 aUEC
+Tin | Metal | — | 4,000 aUEC | 4,000 aUEC
+Titanium | Metal | 7,315 aUEC | 8,300 aUEC | 985 aUEC
+Torite | Metal | — | 7,700 aUEC | 7,700 aUEC
+Tritium | Gas | 15,769 aUEC | 34,000 aUEC | 18,231 aUEC
+Tundra Kopion Horn | Medical | — | — | —
+Tungsten | Metal | — | 10,000 aUEC | 10,000 aUEC
+Waste | Waste | 233 aUEC | 324 aUEC | 91 aUEC
+Wuotan Seed | Organic | — | — | —
+Xa'Pyen | Alloy | — | 4,800 aUEC | 4,800 aUEC
+Xenon | Gas | — | — | —
+Year of the Dog Envelope | Temporary | — | — | —
+Year of the Monkey Envelope | Temporary | — | — | —
+Year of the Pig Envelope | Temporary | — | — | —
+Year of the Rat Envelope | Temporary | — | 2,120,000 aUEC | 2,120,000 aUEC
+Year of the Rooster Envelope | Temporary | — | — | —
+Zeta-Prolanide | Man-made | — | — | —

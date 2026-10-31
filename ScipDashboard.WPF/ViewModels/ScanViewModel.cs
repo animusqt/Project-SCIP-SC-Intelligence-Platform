@@ -231,6 +231,9 @@ namespace ScipDashboard.WPF.ViewModels
             }
             catch { }
 
+            var dataHubResult = ParseDataHubFormat(input);
+            if (dataHubResult.Count > 0) return dataHubResult;
+
             var jsResult = ParseJsFormat(input);
             if (jsResult.Count > 0) return jsResult;
 
@@ -241,6 +244,80 @@ namespace ScipDashboard.WPF.ViewModels
             if (csvResult.Count > 0) return csvResult;
 
             return results;
+        }
+
+        private List<ScanResultItem> ParseDataHubFormat(string input)
+        {
+            var results = new List<ScanResultItem>();
+
+            try
+            {
+                var lines = input.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                bool inCommoditiesSection = false;
+
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+
+                    if (trimmed.Equals("COMMODITIES", StringComparison.OrdinalIgnoreCase))
+                    {
+                        inCommoditiesSection = true;
+                        continue;
+                    }
+
+                    if (!inCommoditiesSection) continue;
+
+                    if (string.IsNullOrWhiteSpace(trimmed)) continue;
+                    if (trimmed.StartsWith("==") || trimmed.StartsWith("---")) continue;
+
+                    var cols = trimmed.Split('|');
+                    if (cols.Length < 3) continue;
+
+                    var commodityName = cols[0].Trim('"', ' ');
+                    if (string.IsNullOrWhiteSpace(commodityName)) continue;
+                    if (commodityName.Equals("Commodity", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var buyPriceStr = cols.Length > 2 ? cols[2].Trim('"', ' ') : string.Empty;
+                    var sellPriceStr = cols.Length > 3 ? cols[3].Trim('"', ' ') : string.Empty;
+
+                    decimal buyPrice = ParseAuecPrice(buyPriceStr);
+                    decimal sellPrice = ParseAuecPrice(sellPriceStr);
+
+                    if (buyPrice <= 0 && sellPrice <= 0) continue;
+
+                    results.Add(new ScanResultItem
+                    {
+                        CommodityId = commodityName.ToLowerInvariant().Replace(" ", "-"),
+                        CommodityName = commodityName,
+                        LocationId = "datahub",
+                        LocationName = "SC DataHub",
+                        SystemName = "Stanton",
+                        BuyPrice = buyPrice,
+                        SellPrice = sellPrice,
+                        Volume = 0,
+                        DemandVolume = 0,
+                        Margin = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
+                        Timestamp = DateTime.UtcNow,
+                        SourceName = "SC DataHub",
+                        Status = "Updated"
+                    });
+                }
+
+                return results;
+            }
+            catch { return results; }
+        }
+
+        private decimal ParseAuecPrice(string priceStr)
+        {
+            if (string.IsNullOrWhiteSpace(priceStr)) return 0m;
+            if (priceStr.Trim() == "—") return 0m;
+
+            var cleaned = priceStr.Replace("aUEC", "").Replace("aUEC", "").Replace(",", "").Trim();
+            if (decimal.TryParse(cleaned, out decimal result))
+                return result;
+
+            return 0m;
         }
 
         private List<ScanResultItem> ParseJsFormat(string input)

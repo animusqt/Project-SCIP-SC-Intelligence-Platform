@@ -92,6 +92,8 @@
                     
                     <TextBlock Text="{Binding ScanFileName}" FontSize="10" Foreground="{DynamicResource MutedTextColor}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding StatusMessage}" FontSize="11" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                    
+                    <TextBlock Text="Supported formats: JSON, CSV, JS, PY, TXT, and SC DataHub (*.txt)" FontSize="9" Foreground="{DynamicResource MutedTextColor}" Margin="0,6,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
 
