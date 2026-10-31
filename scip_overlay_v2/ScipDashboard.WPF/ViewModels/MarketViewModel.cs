@@ -85,6 +85,8 @@ namespace ScipDashboard.WPF.ViewModels
             FilterByCategoryCommand = new RelayCommand<string>(ExecuteFilterByCategory);
             ToggleSortCommand = new RelayCommand(_ => ToggleSortDirection());
 
+            Commodities.CollectionChanged += (s, e) => OnPropertyChanged(nameof(IsEmpty));
+
             LoadDataAsync();
         }
 
@@ -98,6 +100,8 @@ namespace ScipDashboard.WPF.ViewModels
         public ObservableCollection<string> Locations { get; }
         public ObservableCollection<string> SortOptions { get; }
         public ObservableCollection<Core.Models.WatchlistItem> Watchlist { get; }
+
+        public bool IsEmpty => Commodities.Count == 0;
 
         public string SearchQuery
         {
