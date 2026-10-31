@@ -88,7 +88,7 @@
             </Grid>
         </Grid>
         <!-- Loading Screen Overlay -->
-        <Border x:Name="LoadingOverlay" Background="{DynamicResource GradientBackground}" Opacity="0.95" Visibility="Visible">
+        <Border x:Name="LoadingOverlay" Background="#0a0a12" Opacity="0.98" Visibility="Visible">
             <Grid Margin="60">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
