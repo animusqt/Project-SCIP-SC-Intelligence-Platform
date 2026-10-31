@@ -49,11 +49,11 @@
                     <Button Content="Main Kiosk" Click="Navigate_Dashboard" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Market Overview" Click="Navigate_Market" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Hauling" Click="Navigate_Hauling" Style="{StaticResource SidebarButtonStyle}"/>
+                    <Button Content="OCR | SCAN" Click="Navigate_OcrScan" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Fleet" Click="Navigate_Fleet" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="StarQuester" Click="Navigate_StarQuester" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Salvaging" Click="Navigate_Salvaging" Style="{StaticResource SidebarButtonStyle}"/>
                     <Button Content="Settings" Click="Navigate_Settings" Style="{StaticResource SidebarButtonStyle}"/>
-                    <Button Content="OCR | SCAN" Click="Navigate_OcrScan" Style="{StaticResource SidebarButtonStyle}"/>
                 </StackPanel>
             </Border>
 
