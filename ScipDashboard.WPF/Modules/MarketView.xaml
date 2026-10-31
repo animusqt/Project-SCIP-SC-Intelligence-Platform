@@ -159,7 +159,7 @@
                                                     </Grid.ColumnDefinitions>
 
                                                 <!-- Expand/Collapse Arrow -->
-                                                <Button Grid.Column="0" Width="44" Height="44" Padding="0" Margin="0,4" BorderThickness="0"
+                                                                                                <Button Grid.Column="0" Width="24" Height="24" Padding="4" Margin="0,2" BorderThickness="0"
                                                         Background="Transparent" Foreground="{DynamicResource SecondaryTextColor}"
                                                         FontSize="14" FontWeight="Bold" Cursor="Hand"
                                                         HorizontalAlignment="Stretch" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
@@ -263,5 +263,6 @@
 
         </Grid>
     </UserControl>
+
 
 
