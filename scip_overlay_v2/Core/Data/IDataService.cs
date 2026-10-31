@@ -48,27 +48,144 @@ namespace ScipDashboard.Core.Data
         
         public async Task<ScipDashboard.Core.Models.MarketData> GetMarketDataAsync(bool forceRefresh = false)
         {
-            return _marketData.Count > 0 ? _marketData[0] : new ScipDashboard.Core.Models.MarketData();
+            if (_marketData.Count > 0 && !forceRefresh)
+                return _marketData[0];
+
+            // Build market data from seeded commodities and observations if none saved yet
+            await GetCommoditiesAsync(); // ensures seeding happens
+
+            var marketData = new ScipDashboard.Core.Models.MarketData
+            {
+                Name = "SC-Truckers Sample Market Data",
+                Timestamp = DateTime.UtcNow,
+                Locations = new List<ScipDashboard.Core.Models.Location>(),
+                Commodities = new List<ScipDashboard.Core.Models.Commodity>(_commodities),
+                PriceObservations = new List<ScipDashboard.Core.Models.PriceObservation>(_observations),
+            };
+
+            // Build unique locations from observations
+            var locationIds = new HashSet<string>();
+            foreach (var obs in _observations)
+            {
+                if (!locationIds.Contains(obs.LocationId))
+                {
+                    locationIds.Add(obs.LocationId);
+                    marketData.Locations.Add(new ScipDashboard.Core.Models.Location
+                    {
+                        Id = obs.LocationId,
+                        Name = obs.LocationName,
+                        SystemName = obs.SystemName,
+                        Type = "Terminal",
+                        IsActive = true,
+                        HasCommoditiesMarket = true,
+                    });
+                }
+            }
+
+            if (!forceRefresh)
+                await SaveMarketDataAsync(marketData);
+
+            return marketData;
         }
         
         public async Task<List<ScipDashboard.Core.Models.Commodity>> GetCommoditiesAsync()
         {
             if (_commodities.Count == 0)
             {
-                // Populate with sample data
-                for (int i = 0; i < 10; i++)
-                {
-                    _commodities.Add(new ScipDashboard.Core.Models.Commodity
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Name = $"Commodity-{i+1}",
-                        CurrentBuyPrice = 10 + (i * 2),
-                        MarginPercent = 5,
-                        CurrentSellPrice = 15 + (i * 2)
-                    });
-                }
+                // Seed with SC-Truckers real commodity categories and names
+                SeedScTruckersData();
             }
             return _commodities;
+        }
+
+        private void SeedScTruckersData()
+        {
+            // SC-Truckers station/terminal locations
+            var stations = new[]
+            {
+                new { Name = "Area18", System = "Stanton", Shop = "Cubby Blast" },
+                new { Name = "Lorville", System = "Stanton", Shop = "Dumper's Depot" },
+                new { Name = "Everus Harbor", System = "Stanton", Shop = "Platinum Bay" },
+                new { Name = "New Babbage", System = "Stanton", Shop = "New Deal" },
+                new { Name = "Baijini Point", System = "Stanton", Shop = "Platinum Bay" },
+                new { Name = "Port Tressler", System = "Stanton", Shop = "Platinum Bay" },
+                new { Name = "Orison", System = "Stanton", Shop = "Omni Polo" },
+            };
+
+            var commodityData = new[]
+            {
+                // Metal / Ore
+                ("Quantanium", "Metal / Ore", 24500, 26800, false),
+                ("Laranite", "Metal / Ore", 8900, 11200, false),
+                ("Titanium", "Metal / Ore", 1850, 2100, false),
+                ("Tungsten", "Metal / Ore", 4200, 5100, false),
+                ("Iron", "Metal / Ore", 350, 450, false),
+                ("Gold", "Metal / Ore", 15500, 18900, false),
+                ("Diamond", "Metal / Ore", 28000, 34000, false),
+                ("Copper", "Metal / Ore", 1200, 1450, false),
+                ("Aluminum", "Metal / Ore", 950, 1150, false),
+                ("Beryl", "Metal / Ore", 6800, 8200, false),
+                ("Borase", "Metal / Ore", 12500, 15200, false),
+                // Bio / Contraband
+                ("Altruciatoxin", "Bio / Contraband", 48000, 65000, true),
+                ("Medsticks", "Bio / Contraband", 8500, 12500, false),
+                ("Neon", "Bio / Contraband", 9500, 11500, false),
+                // Agricultural
+                ("Agricium", "Agricultural", 2200, 3100, false),
+                ("Golden Medmon", "Agricultural", 15500, 19500, false),
+                // Gas / Fuel
+                ("Hydrogen", "Gas / Fuel", 350, 480, false),
+                ("Helium", "Gas / Fuel", 4200, 5800, false),
+                ("Methane", "Gas / Fuel", 850, 1100, false),
+                // Salvage / Industrial
+                ("Waste", "Salvage / Industrial", 150, 220, false),
+                ("Scrap", "Salvage / Industrial", 450, 650, false),
+                ("Ship Parts", "Salvage / Industrial", 5500, 7800, false),
+            };
+
+            int commodityIndex = 0;
+            foreach (var (name, category, buyPrice, sellPrice, isIllegal) in commodityData)
+            {
+                var commodity = new ScipDashboard.Core.Models.Commodity
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = name,
+                    DisplayName = name,
+                    Category = category,
+                    CurrentBuyPrice = buyPrice,
+                    CurrentSellPrice = sellPrice,
+                    MarginPercent = Math.Round(((sellPrice - buyPrice) / buyPrice) * 100m, 2),
+                    IsIllegal = isIllegal,
+                    SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample,
+                };
+                _commodities.Add(commodity);
+
+                // Create price observations for each station
+                foreach (var station in stations)
+                {
+                    var buyVariation = buyPrice * (0.9m + (decimal)commodityIndex * 0.01m);
+                    var sellVariation = sellPrice * (0.95m + (decimal)commodityIndex * 0.01m);
+
+                    _observations.Add(new ScipDashboard.Core.Models.PriceObservation
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        CommodityId = commodity.Id,
+                        CommodityName = name,
+                        LocationId = $"loc-{station.System}-{station.Name}".Replace(" ", "-").ToLower(),
+                        LocationName = station.Name,
+                        SystemName = station.System,
+                        BuyPrice = Math.Round(buyVariation, 2),
+                        SellPrice = Math.Round(sellVariation, 2),
+                        Volume = 1000 + commodityIndex * 100,
+                        DemandVolume = 800 + commodityIndex * 80,
+                        Timestamp = DateTime.UtcNow.AddMinutes(-commodityIndex * 5),
+                        SourceName = "UEXCorp Sample",
+                        SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample,
+                    });
+                }
+
+                commodityIndex++;
+            }
         }
         
         public async Task<List<ScipDashboard.Core.Models.PriceObservation>> GetPriceObservationsAsync(string commodityId)

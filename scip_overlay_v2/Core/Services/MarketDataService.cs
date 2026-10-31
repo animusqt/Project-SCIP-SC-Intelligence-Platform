@@ -214,8 +214,8 @@ namespace ScipDashboard.Core.Services
 
         private static async Task SeedSampleDataFallbackAsync(IDataService dataService)
         {
-            // Keep the existing sample data seeding
-            await Task.CompletedTask;
+            // Ensure SC-Truckers sample data is seeded
+            await dataService.GetCommoditiesAsync();
         }
         public async Task RefreshFromAllSourcesAsync()
         {
