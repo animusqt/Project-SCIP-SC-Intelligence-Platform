@@ -1,0 +1,29 @@
+# Build artifacts
+bin/
+obj/
+Publish/
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.cache
+*.opensdf
+*.sdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.log
+*.old
+*.backup
+*.new
+
+# Kilo/Agent Manager
+.kilo/
