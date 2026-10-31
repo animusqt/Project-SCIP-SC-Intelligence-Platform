@@ -173,6 +173,35 @@
                 </StackPanel>
             </Border>
 
+            <!-- COMING SOON: Salvaging Features -->
+            <Border Margin="0,20,0,0" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔮" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Coming Soon — Salvaging | Mining" Style="{StaticResource SectionHeader}"/>
+                    </StackPanel>
+                    <TextBlock Text="Planned features for mining and salvaging operations:" FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+                    <ItemsControl ItemsSource="{Binding ComingSoonItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="⛏️" FontSize="11" Foreground="{DynamicResource PrimaryOrangeBrush}" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding FeatureName}" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryTextColor}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FeatureDescription}" FontSize="10"
+                                               Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap"
+                                               Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
         </Grid>
     </ScrollViewer>
 </UserControl>

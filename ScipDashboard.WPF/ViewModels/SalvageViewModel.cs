@@ -21,6 +21,49 @@ namespace ScipDashboard.WPF.ViewModels
 
         public ObservableCollection<SalvageLocationViewModel> Locations { get; } = new();
         public ObservableCollection<string> LocationNames { get; } = new() { "All Locations" };
+        public ObservableCollection<ComingSoonItem> ComingSoonItems { get; } = new()
+        {
+            new()
+            {
+                FeatureName = "Salvage Location Scanner",
+                FeatureDescription = "Scan salvage fields across systems to locate wreckage, derelict ships, and recoverable materials."
+            },
+            new()
+            {
+                FeatureName = "Material Yield Calculator",
+                FeatureDescription = "Estimate refined material output from salvaged components based on ship cargo capacity and processing efficiency."
+            },
+            new()
+            {
+                FeatureName = "Mining Route Optimizer",
+                FeatureDescription = "Plan mining runs across asteroid fields with mineral concentration, distance, and risk assessment."
+            },
+            new()
+            {
+                FeatureName = "Cargo Fill Tracker",
+                FeatureDescription = "Monitor cargo fill rates during mining and salvaging runs with real-time capacity alerts."
+            },
+            new()
+            {
+                FeatureName = "Profit Per Hour",
+                FeatureDescription = "Calculate estimated profit per hour for mining and salvaging operations based on market prices and travel time."
+            },
+            new()
+            {
+                FeatureName = "Salvage Contract Board",
+                FeatureDescription = "Browse and accept salvaging contracts from other players and organizations."
+            },
+            new()
+            {
+                FeatureName = "Mining Hotspot Tracker",
+                FeatureDescription = "Track active mining hotspots with resource density, competition level, and depletion rates."
+            },
+            new()
+            {
+                FeatureName = "Export Salvage Logs",
+                FeatureDescription = "Export salvaging run data to CSV/JSON for analysis and sharing with your org."
+            }
+        };
 
         public string SearchQuery
         {
