@@ -20,6 +20,16 @@ namespace ScipDashboard.Core.Data
         public string ApiKey { get; set; } = string.Empty;
 
         /// <summary>
+        /// Supabase secret/service role key (for server-side operations)
+        /// </summary>
+        public string SecretKey { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Supabase JWKS URL for JWT verification
+        /// </summary>
+        public string JwksUrl { get; set; } = string.Empty;
+
+        /// <summary>
         /// Whether Supabase integration is enabled
         /// </summary>
         public bool IsEnabled { get; set; } = false;
@@ -32,6 +42,8 @@ namespace ScipDashboard.Core.Data
             {
                 SupabaseUrl = "https://your-project.supabase.co",
                 ApiKey = "your-anon-key",
+                SecretKey = "your-secret-key",
+                JwksUrl = "https://your-project.supabase.co/auth/v1/.well-known/jwks.json",
                 IsEnabled = false
             };
         }

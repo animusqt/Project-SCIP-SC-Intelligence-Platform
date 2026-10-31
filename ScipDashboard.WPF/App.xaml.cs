@@ -137,9 +137,11 @@ namespace ScipDashboard
 
         private static SupabaseConfig LoadSupabaseConfig()
         {
-            // Try to read from environment variables first, then fall back to default
+            // Try to read from environment variables first
             var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
             var key = Environment.GetEnvironmentVariable("SUPABASE_API_KEY");
+            var secretKey = Environment.GetEnvironmentVariable("SUPABASE_SECRET_KEY");
+            var jwksUrl = Environment.GetEnvironmentVariable("SUPABASE_JWKS_URL");
 
             if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(key))
             {
@@ -147,6 +149,8 @@ namespace ScipDashboard
                 {
                     SupabaseUrl = url,
                     ApiKey = key,
+                    SecretKey = secretKey ?? string.Empty,
+                    JwksUrl = jwksUrl ?? string.Empty,
                     IsEnabled = true
                 };
             }
@@ -155,6 +159,8 @@ namespace ScipDashboard
             {
                 SupabaseUrl = string.Empty,
                 ApiKey = string.Empty,
+                SecretKey = string.Empty,
+                JwksUrl = string.Empty,
                 IsEnabled = false
             };
         }
