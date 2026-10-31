@@ -54,6 +54,50 @@ namespace ScipDashboard.WPF.ViewModels
             set { if (_results != value) { _results = value; OnPropertyChanged(); } }
         }
 
+        public ObservableCollection<ComingSoonItem> ComingSoonItems { get; } = new()
+        {
+            new()
+            {
+                FeatureName = "In-Game Screen Capture",
+                FeatureDescription = "Real-time screenshot capture of commodity terminals using OCR to extract prices automatically without manual copy-paste."
+            },
+            new()
+            {
+                FeatureName = "Live Price Overlay",
+                FeatureDescription = "Floating in-game overlay showing current buy/sell prices and best margins while you play Star Citizen."
+            },
+            new()
+            {
+                FeatureName = "Auto Market Sync",
+                FeatureDescription = "Automatically push scanned prices to the SCIP Market Overview for community-wide price tracking."
+            },
+            new()
+            {
+                FeatureName = "Profit Route Calculator",
+                FeatureDescription = "Calculate optimal buy/sell routes across multiple stations with SCU capacity and risk assessment."
+            },
+            new()
+            {
+                FeatureName = "Price History Charts",
+                FeatureDescription = "Track price trends over time for each commodity at each location with visual charts."
+            },
+            new()
+            {
+                FeatureName = "Custom Alerts",
+                FeatureDescription = "Set price threshold alerts and get notified when commodities hit your target buy/sell prices."
+            },
+            new()
+            {
+                FeatureName = "Multi-Ship Planning",
+                FeatureDescription = "Plan hauling runs across multiple ships with combined SCU capacity and coordinated routes."
+            },
+            new()
+            {
+                FeatureName = "Export & Share",
+                FeatureDescription = "Export scan data to CSV/JSON or share route plans with your org mates."
+            }
+        };
+
         public ICommand ScanInputCommand { get; }
         public ICommand ClearCommand { get; }
 
@@ -259,5 +303,11 @@ namespace ScipDashboard.WPF.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class ComingSoonItem
+    {
+        public string FeatureName { get; set; } = string.Empty;
+        public string FeatureDescription { get; set; } = string.Empty;
     }
 }

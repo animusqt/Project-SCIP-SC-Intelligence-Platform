@@ -127,32 +127,32 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                
+                                                 
                                                 <StackPanel Grid.Column="0">
                                                     <TextBlock Text="{Binding CommodityName}" FontSize="12" FontWeight="Bold"
                                                                Foreground="{DynamicResource PrimaryTextColor}" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{Binding LocationName}" FontSize="10" Foreground="{DynamicResource SecondaryTextColor}"/>
                                                     <TextBlock Text="{Binding SystemName}" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
                                                 </StackPanel>
-                                                
+                                                 
                                                 <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
                                                     <TextBlock Text="Buy" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
                                                     <TextBlock Text="{Binding BuyText}" FontSize="12" FontWeight="Bold"
                                                                Foreground="{DynamicResource SuccessGreen}"/>
                                                 </StackPanel>
-                                                
+                                                 
                                                 <StackPanel Grid.Column="2" HorizontalAlignment="Right" Margin="12,0,0,0">
                                                     <TextBlock Text="Sell" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
                                                     <TextBlock Text="{Binding SellText}" FontSize="12" FontWeight="Bold"
                                                                Foreground="#EF4444"/>
                                                 </StackPanel>
-                                                
+                                                 
                                                 <StackPanel Grid.Column="3" HorizontalAlignment="Right" Margin="12,0,0,0">
                                                     <TextBlock Text="Margin" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
                                                     <TextBlock Text="{Binding MarginText}" FontSize="12" FontWeight="Bold"
                                                                Foreground="{Binding Margin, Converter={StaticResource MarginToColor}}"/>
                                                 </StackPanel>
-                                                
+                                                 
                                                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" Margin="12,0,0,0">
                                                     <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold"
                                                                Foreground="{DynamicResource SuccessGreen}"/>
@@ -166,6 +166,37 @@
                     </Border>
                 </Grid>
             </Border>
+
+            <!-- COMING SOON: Advanced Scanner Features -->
+            <Border Margin="0,20,0,0" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔮" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Coming Soon — Advanced Scanner" Style="{StaticResource SectionHeader}"/>
+                    </StackPanel>
+                    <TextBlock Text="Planned features for the SC Price Scanner overlay integration:" FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                    
+                    <ItemsControl ItemsSource="{Binding ComingSoonItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="✦" FontSize="11" Foreground="{DynamicResource PrimaryOrangeBrush}" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding FeatureName}" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryTextColor}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FeatureDescription}" FontSize="10"
+                                               Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap"
+                                               Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
         </Grid>
     </ScrollViewer>
 </UserControl>
+
