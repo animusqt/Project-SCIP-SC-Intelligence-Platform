@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using ScipDashboard.Core.Data;
 using ScipDashboard.Core.Models;
@@ -719,6 +720,13 @@ namespace ScipDashboard.WPF.ViewModels
         public int Risk { get; set; } = 50;
         public string Trend { get; set; } = "Marginal";
         public List<StationObservation> StationObservations { get; set; } = new();
+
+        public ICommand ExpandCommand { get; }
+
+        public CommodityViewModel()
+        {
+            ExpandCommand = new RelayCommand(_ => IsExpanded = !IsExpanded);
+        }
 
         public bool IsOnWatchlist
         {
