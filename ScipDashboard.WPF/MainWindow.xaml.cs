@@ -40,71 +40,95 @@ namespace ScipDashboard.Main
             try
             {
                 _isLoading = true;
-                
-                // Debug: Log starting loading animation
-                System.Diagnostics.Debug.WriteLine("[MainWindow] Starting loading animation (thread: " + System.Threading.Thread.CurrentThread.Name + ")");
-                
-                // Show loading screen using Dispatcher to ensure UI thread execution
+
                 Dispatcher.Invoke(() =>
                 {
                     if (LoadingOverlay != null)
                     {
                         LoadingOverlay.Visibility = Visibility.Visible;
-                        System.Diagnostics.Debug.WriteLine("[MainWindow] LoadingOverlay displayed");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[MainWindow] WARNING: LoadingOverlay is null!");
+                        LoadingBarFill.Width = 0;
+                        LoadingProgressText.Text = "0%";
                     }
                 });
-                
-                // Simulate loading for 1 second (100 steps at 10ms each)
-                for (int i = 0; i < 200; i++)
+
+                // Simulate loading for 2 seconds (100 steps at 20ms each)
+                int totalSteps = 100;
+                for (int i = 0; i <= totalSteps; i++)
                 {
-                    await Task.Delay(10);
-                    
+                    await Task.Delay(20);
+
                     if (!_isLoading) break;
+
+                    double progress = (double)i / totalSteps;
+                    double barWidth = progress * 400;
+                    int percent = (int)(progress * 100);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (LoadingBarFill != null)
+                        {
+                            LoadingBarFill.Width = barWidth;
+                        }
+                        if (LoadingProgressText != null)
+                        {
+                            LoadingProgressText.Text = $"{percent}%";
+                        }
+
+                        // Update status text at milestones
+                        if (i == 25)
+                        {
+                            var statusText = LoadingOverlay.FindName("StatusText") as TextBlock;
+                            if (statusText != null)
+                                statusText.Text = "Loading modules...";
+                        }
+                        else if (i == 50)
+                        {
+                            var statusText = LoadingOverlay.FindName("StatusText") as TextBlock;
+                            if (statusText != null)
+                                statusText.Text = "Connecting to data sources...";
+                        }
+                        else if (i == 75)
+                        {
+                            var statusText = LoadingOverlay.FindName("StatusText") as TextBlock;
+                            if (statusText != null)
+                                statusText.Text = "Finalizing...";
+                        }
+                    });
                 }
-                
+
                 _isLoading = false;
-                
-                // Debug: Log after loading loop completes
-                System.Diagnostics.Debug.WriteLine("[MainWindow] Loading animation complete");
-                
-                // Hide loading screen and show main content using Dispatcher to ensure UI thread execution
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (LoadingBarFill != null)
+                    {
+                        LoadingBarFill.Width = 400;
+                    }
+                    if (LoadingProgressText != null)
+                    {
+                        LoadingProgressText.Text = "100%";
+                    }
+                });
+
+                await Task.Delay(300);
+
                 Dispatcher.Invoke(() =>
                 {
                     if (LoadingOverlay != null)
                     {
                         LoadingOverlay.Visibility = Visibility.Collapsed;
-                        System.Diagnostics.Debug.WriteLine("[MainWindow] LoadingOverlay hidden");
                     }
-                    
+
                     var viewModel = DataContext as MainViewModel;
                     if (viewModel != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[MainWindow] DataContext bound, ViewModel type: {viewModel.GetType().Name}");
-                        try
-                        {
-                            viewModel.CurrentView = DashboardView.Main;
-                            System.Diagnostics.Debug.WriteLine("[MainWindow] CurrentView set to Main");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[MainWindow] Error setting CurrentView: {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[MainWindow] WARNING: DataContext is null!");
+                        viewModel.CurrentView = DashboardView.Main;
                     }
                 });
             }
             catch (Exception ex)
             {
-                // Log error but don't crash the application
                 System.Diagnostics.Debug.WriteLine($"[MainWindow] Loading animation error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace:\n{ex.StackTrace}");
             }
         }
 

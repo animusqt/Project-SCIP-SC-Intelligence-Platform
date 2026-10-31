@@ -91,35 +91,41 @@
         <Border x:Name="LoadingOverlay" Background="{DynamicResource GradientBackground}" Opacity="0.95" Visibility="Visible">
             <Grid Margin="60">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="80"/>
-                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 
-                <!-- Header -->
-                <Border Grid.Row="0" Background="Transparent" CornerRadius="8">
+                <!-- Logo / Title -->
+                <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,40">
+                    <Border Width="60" Height="60" Background="{DynamicResource PrimaryOrangeBrush}" CornerRadius="12"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="📦" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
                     <TextBlock Text="SC Intelligence Platform" 
-                               Foreground="White" FontSize="36" FontWeight="Bold" 
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                               Foreground="White" FontSize="28" FontWeight="Bold" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,16,0,0"/>
+                </StackPanel>
+                
+                <!-- Status Text -->
+                <TextBlock x:Name="StatusText" Grid.Row="1" Text="Initializing systems..." 
+                           Foreground="#e0e0e0" FontSize="16" 
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,32"/>
+                
+                <!-- Progress Bar Container -->
+                <Border Grid.Row="2" Width="400" Height="8" 
+                        Background="#2a2a3a" CornerRadius="4" 
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="LoadingBarFill" Width="0" Height="8" 
+                            Background="{DynamicResource PrimaryOrangeBrush}" CornerRadius="4"
+                            HorizontalAlignment="Left"/>
                 </Border>
                 
-                <!-- Subtitle -->
-                <TextBlock Grid.Row="1" Text="Initializing systems..." 
-                           Foreground="White" FontSize="24" 
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                
-                <!-- Animated Progress Bar -->
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- Background bar -->
-                    <Rectangle Grid.Column="0" Fill="#1e293b" Stretch="Uniform"/>
-                    
-                    <!-- Animated fill bar -->
-                    <Rectangle x:Name="LoadingBarFill" Grid.Column="0" Fill="{DynamicResource PrimaryOrangeBrush}" Stretch="Uniform"/>
-                </Grid>
+                <!-- Progress Percentage -->
+                <TextBlock Grid.Row="3" x:Name="LoadingProgressText" Text="0%" 
+                           Foreground="{DynamicResource PrimaryOrangeBrush}" FontSize="14" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,16,0,0"/>
             </Grid>
         </Border>
 
