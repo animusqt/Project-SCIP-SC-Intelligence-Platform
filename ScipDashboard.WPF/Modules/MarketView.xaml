@@ -158,23 +158,23 @@
                                                         <ColumnDefinition Width="80" SharedSizeGroup="ColTrend"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <!-- Expand/Collapse Arrow -->
-                                                    <Button Grid.Column="0" Width="24" Height="24" Padding="0" Margin="0" BorderThickness="0"
-                                                            Background="Transparent" Foreground="{DynamicResource SecondaryTextColor}"
-                                                            FontSize="10" FontWeight="Bold" Cursor="Hand"
-                                                            VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                            Command="{Binding ExpandCommand}" CommandParameter="{Binding Id}">
-                                                        <Button.Style>
-                                                            <Style TargetType="Button">
-                                                                <Setter Property="Content" Value="▼"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                                                                        <Setter Property="Content" Value="▲"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Button.Style>
-                                                    </Button>
+                                                <!-- Expand/Collapse Arrow -->
+                                                <Button Grid.Column="0" Width="36" Height="36" Padding="8" Margin="0,2" BorderThickness="0"
+                                                        Background="Transparent" Foreground="{DynamicResource SecondaryTextColor}"
+                                                        FontSize="14" FontWeight="Bold" Cursor="Hand"
+                                                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                        Command="{Binding ExpandCommand}" CommandParameter="{Binding Id}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Content" Value="▼"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                    <Setter Property="Content" Value="▲"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
 
                                                     <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource PrimaryTextColor}" Grid.Column="0" VerticalAlignment="Center"/>
