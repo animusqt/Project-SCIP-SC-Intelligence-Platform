@@ -7,7 +7,7 @@ setlocal enabledelayedexpansion
 :: ==================================================
 
 :: Start the compiled WinExe directly - no console window is shown.
-start "" "%~dp0ScipDashboard.WPF\bin\Release\net8.0-windows\ScipDashboard.WPF.exe"
+start "" "%~dp0Publish\ScipDashboard.WPF.exe"
 
 :: Exit immediately so this console window closes as the dashboard appears.
 exit /b 0
