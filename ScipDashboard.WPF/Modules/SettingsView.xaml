@@ -8,7 +8,7 @@
              Background="{DynamicResource BackgroundBrush}"
              d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="20">
             <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="24">
                 <StackPanel Orientation="Vertical">
@@ -24,6 +24,8 @@
                             <TextBlock Text="Theme" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
                             <RadioButton Content="☀️ Light Mode" IsChecked="{Binding IsLightModeSelected, Mode=TwoWay}" FontSize="12" Margin="0,4,0,4"
                                          Foreground="{DynamicResource PrimaryTextColor}"/>
+                            <RadioButton Content="🌙 Dark Mode" IsChecked="{Binding IsDarkModeSelected, Mode=TwoWay}" FontSize="12" Margin="0,4,0,4"
+                                         Foreground="{DynamicResource PrimaryTextColor}"/>
                         </StackPanel>
                     </Border>
 
@@ -36,8 +38,8 @@
                             <TextBlock Text="Auto-refresh interval (minutes):" FontSize="12" Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextColor}"/>
                             <ComboBox ItemsSource="{Binding AvailableIntervals}" SelectedItem="{Binding RefreshInterval, Mode=TwoWay}"
                                       FontSize="12" Width="100" HorizontalAlignment="Left" Margin="0,0,0,8"
-                                      Background="{DynamicResource CardBrush}" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
-                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                      Background="White" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
+                                      Foreground="#111111"/>
                             <TextBlock Text="{Binding RefreshInterval, StringFormat='Refreshes every {0} minutes'}" FontSize="11" Foreground="{DynamicResource SecondaryTextColor}"/>
                         </StackPanel>
                     </Border>
@@ -51,50 +53,140 @@
                             <ComboBox ItemsSource="{Binding DataSources}" DisplayMemberPath="Name" SelectedValuePath="Name"
                                       SelectedValue="{Binding DefaultDataSource, Mode=TwoWay}"
                                       FontSize="12" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                                      Background="{DynamicResource CardBrush}" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
-                                      Foreground="{DynamicResource PrimaryTextColor}"/>
+                                      Background="White" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
+                                      Foreground="#111111"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
+
+                    <TextBlock Text="Commodity Catalog" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,8"/>
+                    <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Enter a local quote by commodity and terminal. Stock and demand default to zero when unknown; add observed SCU amounts to enable route calculations."
+                                       FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,10"/>
+                            <UniformGrid Columns="3" Margin="0,0,0,8">
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="COMMODITY NAME" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualCommodityName, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="BUY PRICE (aUEC/SCU)" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualBuyPrice, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="SELL PRICE (aUEC/SCU)" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualSellPrice, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                            </UniformGrid>
+                            <UniformGrid Columns="4" Margin="0,0,0,8">
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="LOCATION TO BUY" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualBuyLocation, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="LOCATION TO SELL" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualSellLocation, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="BUY STOCK (SCU)" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualBuyStockScu, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="SELL DEMAND (SCU)" FontSize="9" Foreground="{DynamicResource MutedTextColor}"/>
+                                    <TextBox Text="{Binding ManualSellDemandScu, UpdateSourceTrigger=PropertyChanged}" Padding="7,5" Background="White" Foreground="#111111" BorderBrush="{DynamicResource BorderBrush}"/>
+                                </StackPanel>
+                            </UniformGrid>
+                            <Button Content="Add manual commodity quote" Command="{Binding AddManualCommodityEntryCommand}" Padding="10,6" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                            <ItemsControl ItemsSource="{Binding ManualCommodityEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="0.8*"/>
+                                                <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource PrimaryTextColor}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding BuyPrice, StringFormat={}{0:N0}}" Foreground="{DynamicResource SuccessGreen}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding SellPrice, StringFormat={}{0:N0}}" Foreground="{DynamicResource SecondaryAccentCyan}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding BuyLocation}" Foreground="{DynamicResource SecondaryTextColor}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding SellLocation}" Foreground="{DynamicResource SecondaryTextColor}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <Button Grid.Column="5" Content="Remove" Command="{Binding DataContext.RemoveManualCommodityEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}" Padding="7,2"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding CommodityCatalogStatus}" FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryAccentCyan}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
+
+                    <TextBlock Text="Route Location Filters" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding RouteFilterStatus}" FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,8"/>
+                    <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="LOCATION TYPES" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource MutedTextColor}" Margin="0,0,0,5"/>
+                            <ItemsControl ItemsSource="{Binding RouteCategories}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,16,6"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="STAR SYSTEMS" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource MutedTextColor}" Margin="0,8,0,5"/>
+                            <ItemsControl ItemsSource="{Binding RouteSystems}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,16,6"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </Border>
 
                     <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
 
                     <!-- Login -->
-                    <TextBlock Text="Account &amp; Session" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Connect Account" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,8"/>
                     <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16" Margin="0,0,0,16">
                         <StackPanel Orientation="Vertical">
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Username:" Grid.Column="0" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"
-                                           Foreground="{DynamicResource PrimaryTextColor}"/>
-                                <TextBox Grid.Column="1" Text="{Binding LoginUsername, Mode=TwoWay}" FontSize="11" Padding="4,2" VerticalAlignment="Center"
-                                         Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                         Foreground="{DynamicResource PrimaryTextColor}"/>
-                            </Grid>
-                            <Grid Margin="0,8,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Password:" Grid.Column="0" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"
-                                           Foreground="{DynamicResource PrimaryTextColor}"/>
-                                <PasswordBox Grid.Column="1" FontSize="11" Padding="4,2" VerticalAlignment="Center"
-                                             Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                             Foreground="{DynamicResource PrimaryTextColor}"/>
-                            </Grid>
+                            <TextBlock Text="SUPABASE PROJECT URL" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource MutedTextColor}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding SupabaseProjectUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource SearchTextBoxStyle}" Height="30" Margin="0,0,0,8"
+                                     ToolTip="https://&lt;project-ref&gt;.supabase.co"/>
+                            <TextBlock Text="SUPABASE PUBLISHABLE / ANON KEY" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource MutedTextColor}" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding SupabasePublishableKey, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource SearchTextBoxStyle}" Height="30" Margin="0,0,0,8"
+                                     ToolTip="Use the publishable or legacy anon key only"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="Save Supabase Settings" Command="{Binding ConfigureSupabaseCommand}"
+                                        FontSize="10" Padding="10,5" Background="{DynamicResource SecondaryAccentCyan}"
+                                        Foreground="#07111F" BorderThickness="0"/>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="Login" Command="{Binding LoginCommand}" FontSize="11" Padding="10,4" Margin="0,0,8,0"
+                                <Button Content="Connect Discord" Command="{Binding LoginWithDiscordCommand}"
+                                        IsEnabled="{Binding IsDiscordAuthAvailable}" FontSize="11" Padding="10,4" Margin="0,0,8,0"
                                         Background="{DynamicResource PrimaryOrangeBrush}" BorderThickness="0"
                                         Foreground="{DynamicResource PrimaryTextColor}"/>
+                                <Button Content="Connect Google" Command="{Binding LoginWithGoogleCommand}"
+                                        IsEnabled="{Binding IsGoogleAuthAvailable}" FontSize="11" Padding="10,4" Margin="0,0,8,0"/>
+                                <Button Content="Sign out" Command="{Binding LogoutCommand}" IsEnabled="{Binding IsLoggedIn}"
+                                        FontSize="11" Padding="10,4" Margin="0,0,8,0"/>
                                 <TextBlock Text="{Binding LoginDisplayText}" FontSize="11" Foreground="{DynamicResource SecondaryTextColor}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </StackPanel>
+                            <TextBlock Text="Use the same Supabase project URL and publishable/anon key in the Lovable app and this dashboard. Then enable Google under Supabase Authentication → Providers. The key is public client configuration, not a secret; never enter a service_role or secret key here. This does not by itself sync market data or SC-Truckers profiles."
+                                               FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource MutedTextColor}" Margin="0,6,0,0"/>
                             <TextBlock Text="{Binding LoginStatusMessage}" FontSize="10" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
+                    <TextBlock Text="Support SCIP" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,4"/>
+                    <TextBlock Text="If you enjoy the dashboard, you can support its continued development. This button will activate when a PayPal link is configured."
+                               FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,4"/>
+                            <Button Content="Support SCIP" Command="{Binding OpenDonationLinkCommand}"
+                                    IsEnabled="{Binding CanOpenDonationLink}" Padding="12,7" Margin="0,16,0,0"
+                                    HorizontalAlignment="Left" Background="{DynamicResource SecondaryAccentCyan}"
+                                    Foreground="#07111F" BorderThickness="0"
+                                    ToolTip="Enabled when a valid PayPal donation URL is configured."/>
 
                     <!-- Buttons -->
                     <Border Margin="0,24,0,0">

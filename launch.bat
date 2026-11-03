@@ -1,13 +1,21 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 
 :: ==================================================
-:: SCIP Dashboard WPF - Launcher for Borderless Window Mode
-:: Builds the app (if needed) and starts it without a console window.
+:: SCIP Dashboard WPF - Rebuild and launch the resizable dashboard
+:: Builds the current source, then starts that build's executable.
 :: ==================================================
 
-:: Start the compiled WinExe directly - no console window is shown.
-start "" "%~dp0Publish\ScipDashboard.WPF.exe"
+set "BUILD_DIR=%TEMP%\SCIP-Dashboard-%RANDOM%-%RANDOM%"
 
-:: Exit immediately so this console window closes as the dashboard appears.
+dotnet build "%~dp0ScipDashboard.WPF\ScipDashboard.WPF.csproj" --configuration Release --output "%BUILD_DIR%"
+if errorlevel 1 goto build_failed
+
+start "" "%BUILD_DIR%\ScipDashboard.WPF.exe"
 exit /b 0
+
+:build_failed
+echo.
+echo SCIP Dashboard build failed. The app was not started.
+pause
+exit /b 1

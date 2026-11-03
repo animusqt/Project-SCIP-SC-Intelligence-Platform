@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <RootNamespace>ScipDashboard</RootNamespace>
@@ -11,5 +11,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\Build Doc\sc_datahub_commodities_filtered.txt" Link="Build Doc\sc_datahub_commodities_filtered.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data\ship-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data\location-catalog.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

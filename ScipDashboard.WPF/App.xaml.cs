@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using ScipDashboard.Core.Data;
 using ScipDashboard.Core.Services;
 using ScipDashboard.WPF.Services;
+using ScipDashboard.WPF.ViewModels;
 
 namespace ScipDashboard
 {
@@ -46,10 +48,79 @@ namespace ScipDashboard
     public partial class App : Application
     {
         public static ServiceLocator Services { get; } = new();
+        public static string CurrentTheme { get; private set; } = "Light";
         public static IAppSettings? AppSettings { get; set; }
         public static SupabaseAuthService? AuthService { get; set; }
         public static SupabaseClient? SupabaseClient { get; set; }
         public static SupabaseConfig? SupabaseConfig { get; set; }
+
+        public static bool TryConfigureSupabase(string projectUrl, string publishableKey, out string error)
+        {
+            error = string.Empty;
+            if (!Uri.TryCreate(projectUrl?.Trim(), UriKind.Absolute, out var uri) || uri == null)
+            {
+                error = "Enter a Supabase project URL (https://<project-ref>.supabase.co).";
+                return false;
+            }
+
+            var isSupabaseHost = uri.Scheme == Uri.UriSchemeHttps &&
+                                 uri.Host.EndsWith(".supabase.co", StringComparison.OrdinalIgnoreCase);
+            var isLocalHost = uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback;
+            if ((!isSupabaseHost && !isLocalHost) ||
+                !string.IsNullOrEmpty(uri.UserInfo) ||
+                !string.IsNullOrEmpty(uri.Query) ||
+                !string.IsNullOrEmpty(uri.Fragment))
+            {
+                error = "Enter a Supabase project URL (https://<project-ref>.supabase.co).";
+                return false;
+            }
+
+            var key = publishableKey?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(key) || IsServerSecretKey(key))
+            {
+                error = "Use the Supabase publishable/anon key, not a secret or service_role key.";
+                return false;
+            }
+
+            SupabaseClient?.Dispose();
+            var config = new SupabaseConfig
+            {
+                SupabaseUrl = uri.ToString().TrimEnd('/'),
+                ApiKey = key,
+                IsEnabled = true
+            };
+            var client = new SupabaseClient(config.SupabaseUrl, config.ApiKey);
+            var authService = new SupabaseAuthService(client);
+            SupabaseConfig = config;
+            SupabaseClient = client;
+            AuthService = authService;
+            Services.Register(client);
+            Services.Register(authService);
+            return true;
+        }
+
+        private static bool IsServerSecretKey(string key)
+        {
+            if (key.StartsWith("sb_secret_", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var parts = key.Split('.');
+            if (parts.Length != 3)
+                return false;
+
+            try
+            {
+                var payload = parts[1].Replace('-', '+').Replace('_', '/');
+                payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+                using var document = JsonDocument.Parse(Convert.FromBase64String(payload));
+                return document.RootElement.TryGetProperty("role", out var role) &&
+                       string.Equals(role.GetString(), "service_role", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex) when (ex is FormatException or JsonException)
+            {
+                return false;
+            }
+        }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -67,7 +138,21 @@ namespace ScipDashboard
             // Register core services
             var dataService = new DataService();
             Services.Register<IDataService>(dataService);
-            Services.Register<IMarketDataService>(new MarketDataService(dataService));
+            var marketDataService = new MarketDataService(dataService);
+            Services.Register<IMarketDataService>(marketDataService);
+            try
+            {
+                var commodityCatalog = LocalFeatureStore.Read<CommodityCatalogSettings>("commodity-catalog.json");
+                marketDataService.SetAdditionalCommodityNames(commodityCatalog.AdditionalCommodityNames);
+                marketDataService.SetManualCommodityEntries(commodityCatalog.ManualEntries);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                System.Console.WriteLine($"[App] Could not load manual commodity names: {ex.Message}");
+            }
+            var screenScanner = new ScreenScannerService();
+            Services.Register(screenScanner);
+            Services.Register(new ScanViewModel(dataService, screenScanner));
 
             // Initialize Supabase if configured
             if (SupabaseConfig != null && SupabaseConfig.IsEnabled && SupabaseConfig.IsConfigured)
@@ -98,11 +183,19 @@ namespace ScipDashboard
             Services.Register<IAppSettings>(new InMemoryAppSettings());
             AppSettings = Services.Get<IAppSettings>();
 
-            // Seed sample market data so views have something to display
-            SeedSampleDataAsync(dataService).GetAwaiter().GetResult();
-
             // Apply saved theme on startup
-            var savedTheme = AppSettings?.Get("theme") ?? "Light";
+            var savedTheme = "Light";
+            try
+            {
+                var savedThemePreference = LocalFeatureStore.Read<AppThemePreference>("theme.json");
+                if (savedThemePreference.Theme is "Dark" or "Light")
+                    savedTheme = savedThemePreference.Theme;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                System.Console.WriteLine($"[App] Could not load saved theme preference: {ex.Message}");
+            }
+            AppSettings?.Set("theme", savedTheme);
             SetTheme(savedTheme);
 
             var mainWindow = new Main.MainWindow();
@@ -140,19 +233,47 @@ namespace ScipDashboard
             // Try to read from environment variables first
             var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
             var key = Environment.GetEnvironmentVariable("SUPABASE_API_KEY");
-            var secretKey = Environment.GetEnvironmentVariable("SUPABASE_SECRET_KEY");
             var jwksUrl = Environment.GetEnvironmentVariable("SUPABASE_JWKS_URL");
 
             if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(key))
             {
-                return new SupabaseConfig
+                if (IsValidSupabaseConfiguration(url, key))
                 {
-                    SupabaseUrl = url,
-                    ApiKey = key,
-                    SecretKey = secretKey ?? string.Empty,
-                    JwksUrl = jwksUrl ?? string.Empty,
-                    IsEnabled = true
-                };
+                    return new SupabaseConfig
+                    {
+                        SupabaseUrl = url.TrimEnd('/'),
+                        ApiKey = key,
+                        SecretKey = string.Empty,
+                        JwksUrl = jwksUrl ?? string.Empty,
+                        IsEnabled = true
+                    };
+                }
+
+                System.Console.WriteLine("[App] Environment Supabase settings were rejected; use a project URL and publishable/anon key.");
+            }
+
+            try
+            {
+                var localSettings = LocalFeatureStore.Read<LocalSupabaseSettings>("supabase-settings.json");
+                if (!string.IsNullOrWhiteSpace(localSettings.ProjectUrl) &&
+                    !string.IsNullOrWhiteSpace(localSettings.PublishableKey))
+                {
+                    if (IsValidSupabaseConfiguration(localSettings.ProjectUrl, localSettings.PublishableKey))
+                    {
+                        return new SupabaseConfig
+                        {
+                            SupabaseUrl = localSettings.ProjectUrl.TrimEnd('/'),
+                            ApiKey = localSettings.PublishableKey.Trim(),
+                            IsEnabled = true
+                        };
+                    }
+
+                    System.Console.WriteLine("[App] Saved Supabase settings were rejected.");
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                System.Console.WriteLine($"[App] Could not load saved Supabase settings: {ex.Message}");
             }
 
             return new SupabaseConfig
@@ -163,6 +284,18 @@ namespace ScipDashboard
                 JwksUrl = string.Empty,
                 IsEnabled = false
             };
+        }
+
+        private static bool IsValidSupabaseConfiguration(string projectUrl, string publishableKey)
+        {
+            return Uri.TryCreate(projectUrl?.Trim(), UriKind.Absolute, out var uri) &&
+                   ((uri.Scheme == Uri.UriSchemeHttps && uri.Host.EndsWith(".supabase.co", StringComparison.OrdinalIgnoreCase)) ||
+                    (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback)) &&
+                   string.IsNullOrEmpty(uri.UserInfo) &&
+                   string.IsNullOrEmpty(uri.Query) &&
+                   string.IsNullOrEmpty(uri.Fragment) &&
+                   !string.IsNullOrWhiteSpace(publishableKey) &&
+                   !IsServerSecretKey(publishableKey.Trim());
         }
 
         // Global exception handlers - prevent error popups from crashing the app
@@ -185,38 +318,48 @@ namespace ScipDashboard
 
         public static void SetTheme(string themeName)
         {
+            var selectedTheme = string.Equals(themeName, "Dark", StringComparison.OrdinalIgnoreCase)
+                ? "Dark"
+                : "Light";
+            var dict = Application.Current.Resources.MergedDictionaries;
+
+            var toRemove = dict.Where(rd =>
+                rd.Source != null &&
+                (rd.Source.ToString().Contains("DarkTheme", StringComparison.OrdinalIgnoreCase) ||
+                 rd.Source.ToString().Contains("LightTheme", StringComparison.OrdinalIgnoreCase) ||
+                 rd.Source.ToString().Contains("Styles.xaml", StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            foreach (var rd in toRemove)
+                dict.Remove(rd);
+
+            var themeFile = selectedTheme == "Dark"
+                ? "DarkTheme.xaml"
+                : "LightTheme.xaml";
+            dict.Add(new ResourceDictionary
+            {
+                Source = new Uri($"pack://application:,,,/ScipDashboard.WPF;component/{themeFile}", UriKind.Absolute)
+            });
+
+            dict.Add(new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/ScipDashboard.WPF;component/Styles.xaml", UriKind.Absolute)
+            });
+            CurrentTheme = selectedTheme;
+            AppSettings?.Set("theme", selectedTheme);
             try
             {
-                var dict = Application.Current.Resources.MergedDictionaries;
-
-                // Remove all theme and style dictionaries
-                var toRemove = dict.Where(rd =>
-                    rd.Source != null &&
-                    (rd.Source.ToString().Contains("DarkTheme", StringComparison.OrdinalIgnoreCase) ||
-                     rd.Source.ToString().Contains("LightTheme", StringComparison.OrdinalIgnoreCase) ||
-                     rd.Source.ToString().Contains("Styles.xaml", StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-
-                foreach (var rd in toRemove)
-                    dict.Remove(rd);
-
-                // Always add LightTheme only (Dark theme disabled)
-                var themeDict = new ResourceDictionary
-                {
-                    Source = new Uri("pack://application:,,,/ScipDashboard.WPF;component/LightTheme.xaml", UriKind.Absolute)
-                };
-                dict.Add(themeDict);
-
-                var stylesDict = new ResourceDictionary
-                {
-                    Source = new Uri("pack://application:,,,/ScipDashboard.WPF;component/Styles.xaml", UriKind.Absolute)
-                };
-                dict.Add(stylesDict);
+                LocalFeatureStore.Write("theme.json", new AppThemePreference { Theme = selectedTheme });
             }
-            catch
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // Theme switching is best-effort
+                System.Console.WriteLine($"[App] Theme changed for this session but could not be saved: {ex.Message}");
             }
+        }
+
+        public sealed class AppThemePreference
+        {
+            public string Theme { get; set; } = "Light";
         }
 
         private static async Task SeedSampleDataAsync(DataService dataService)

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using ScipDashboard.WPF.ViewModels;
 
 namespace ScipDashboard.WPF.Modules
 {
@@ -8,6 +9,7 @@ namespace ScipDashboard.WPF.Modules
         public StarQuesterView()
         {
             InitializeComponent();
+            DataContext = new StarQuesterViewModel();
         }
     }
 }

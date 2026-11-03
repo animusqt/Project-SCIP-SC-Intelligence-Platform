@@ -64,16 +64,16 @@
 
         <!-- Loop option button (full width, left aligned) -->
         <Style x:Key="LoopOptionButton" TargetType="Button">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SecondaryAccentCyan}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,0,6"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource CharcoalBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -145,6 +145,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- ==================== HEADER ==================== -->
@@ -158,11 +159,16 @@
                     <TextBlock Text="Hauling Service" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}"/>
                     <TextBlock Text="Build multi-stop hauling loops from live market prices" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,0"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Right">
+                    <TextBlock Text="UEXCorp live market · SC DataHub catalog · SC-Truckers shared UEX feed"
+                               FontSize="9" Foreground="{DynamicResource SecondaryAccentCyan}"
+                               HorizontalAlignment="Right" Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="10" Padding="10,4" Margin="0,0,10,0">
                         <TextBlock Text="{Binding StatusMessage}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource SuccessGreen}" MaxWidth="360" TextTrimming="CharacterEllipsis"/>
                     </Border>
-                    <Button Content="&#x21bb; REFRESH" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding RefreshCommand}" VerticalAlignment="Top"/>
+                    <Button Content="&#x21bb; REFRESH LIVE DATA" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding RefreshCommand}" VerticalAlignment="Top"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
 
@@ -194,8 +200,109 @@
                 </Border>
             </UniformGrid>
 
+            <!-- ==================== LOCATION CATALOG ==================== -->
+            <Border Grid.Row="2" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="16" Margin="0,0,0,14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="140"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="UNIVERSE LOCATION CATALOG" FontSize="9" FontWeight="Bold"
+                                       Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                            <TextBlock Text="{Binding LocationCatalogSummary}" FontSize="10"
+                                       Foreground="{DynamicResource CharcoalBrush}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="Reference locations only · route builder uses observed market terminals"
+                                   FontSize="9" Foreground="{DynamicResource DarkModeSubtextBrush}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{Binding LocationSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource SearchTextBoxStyle}" Height="30" FontSize="10"
+                                 VerticalContentAlignment="Center" ToolTip="Search names, parent locations, or systems"/>
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding LocationSystems}"
+                                  SelectedItem="{Binding SelectedLocationSystem}"
+                                  Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="10"
+                                  ToolTip="Filter locations by star system"/>
+                        <ComboBox Grid.Column="4" ItemsSource="{Binding LocationTypes}"
+                                  SelectedItem="{Binding SelectedLocationType}"
+                                  Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="10"
+                                  ToolTip="Filter by city, station, refinery, asteroid, or landing zone"/>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="8,0,24,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.1*"/>
+                            <ColumnDefinition Width="1.5*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="LOCATION" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                        <TextBlock Grid.Column="1" Text="TYPE" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                        <TextBlock Grid.Column="2" Text="SYSTEM" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                        <TextBlock Grid.Column="3" Text="PARENT" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
+                    </Grid>
+
+                    <ListBox Grid.Row="3" ItemsSource="{Binding FilteredCatalogLocations}" Height="140"
+                             Background="{DynamicResource SecondaryBackgroundBrush}"
+                             Foreground="{DynamicResource CharcoalBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.VerticalScrollBarVisibility="Visible"
+                             ScrollViewer.CanContentScroll="True"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="7,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.2*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1.1*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource CharcoalBrush}" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding Id}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Type}" FontSize="9"
+                                               Foreground="{DynamicResource WarningGold}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding SystemName}" FontSize="9"
+                                               Foreground="{DynamicResource DarkModeSubtextBrush}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding ParentName}" FontSize="9"
+                                               Foreground="{DynamicResource DarkModeSubtextBrush}" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
             <!-- ==================== MAIN: BUILDER + LOOP ==================== -->
-            <Grid Grid.Row="2" Margin="0,0,0,14">
+            <Grid Grid.Row="3" Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="420" MinWidth="380"/>
                     <ColumnDefinition Width="16"/>
@@ -251,44 +358,56 @@
                             </StackPanel>
                         </Grid>
 
+                        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource SecondaryAccentCyan}"
+                                BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,10">
+                            <TextBlock Text="{Binding BuilderStepSummary}" FontSize="9" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextColor}" TextWrapping="Wrap"/>
+                        </Border>
+
                         <!-- Chained pickers -->
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="1 · WHERE TO BUY" Style="{StaticResource FieldLabel}"/>
                             <Grid>
                                 <ComboBox ItemsSource="{Binding Stations}"
                                           SelectedItem="{Binding SelectedStation}"
                                           DisplayMemberPath="Name"
                                           Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"/>
-                                <TextBlock Text="WHERE TO BUY?" Style="{StaticResource ComboPlaceholder}"
+                                <TextBlock Text="Select the station to buy from" Style="{StaticResource ComboPlaceholder}"
                                            Visibility="{Binding HasStationSelection, Converter={StaticResource InverseBoolToVisibility}}"/>
                             </Grid>
-                        </Grid>
+                        </StackPanel>
 
-                        <Grid Margin="0,0,0,8">
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="2 · WHAT TO CARRY" Style="{StaticResource FieldLabel}"/>
                             <Grid>
                                 <ComboBox ItemsSource="{Binding CommodityOptions}"
                                           SelectedItem="{Binding SelectedCommodityOption}"
                                           DisplayMemberPath="DisplayText"
                                           Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"
                                           IsEnabled="{Binding HasStationSelection}"/>
-                                <TextBlock Text="WHAT TO CARRY?" Style="{StaticResource ComboPlaceholder}"
+                                <TextBlock Text="{Binding CommodityOptionsMessage}" Style="{StaticResource ComboPlaceholder}"
                                            Visibility="{Binding HasCommoditySelection, Converter={StaticResource InverseBoolToVisibility}}"/>
                             </Grid>
-                        </Grid>
+                        </StackPanel>
 
-                        <Grid Margin="0,0,0,12">
+                        <StackPanel Margin="0,0,0,12">
+                            <TextBlock Text="3 · WHERE TO SELL IT" Style="{StaticResource FieldLabel}"/>
                             <Grid>
                                 <ComboBox ItemsSource="{Binding DestinationOptions}"
                                           SelectedItem="{Binding SelectedDestinationOption}"
                                           DisplayMemberPath="DisplayText"
                                           Style="{StaticResource ComboBoxStyle}" Height="30" FontSize="11"
                                           IsEnabled="{Binding HasCommoditySelection}"/>
-                                <TextBlock Text="WHERE TO SELL IT?" Style="{StaticResource ComboPlaceholder}"
+                                <TextBlock Text="Choose a station with demand for the commodity" Style="{StaticResource ComboPlaceholder}"
                                            Visibility="{Binding HasDestinationSelection, Converter={StaticResource InverseBoolToVisibility}}"/>
                             </Grid>
-                        </Grid>
+                        </StackPanel>
+
+                        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource SuccessGreen}"
+                                BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,10">
+                            <TextBlock Text="{Binding SelectedRoutePreview}" FontSize="9" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextColor}" TextWrapping="Wrap"/>
+                        </Border>
 
                         <!-- Actions -->
                         <Grid Margin="0,0,0,12">
@@ -297,7 +416,7 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Content="ADD LEG" Style="{StaticResource PrimaryActionButton}" Command="{Binding AddLegCommand}"/>
+                            <Button Grid.Column="0" Content="ADD NEXT LOOP ROUTE" Style="{StaticResource PrimaryActionButton}" Command="{Binding AddLegCommand}"/>
                             <Button Grid.Column="2" Content="CLEAR" Style="{StaticResource TextButtonStyle}" FontSize="10" Command="{Binding ClearLoopCommand}" VerticalAlignment="Center"/>
                         </Grid>
 
@@ -318,6 +437,8 @@
                                 </StackPanel>
                             </Grid>
                         </Border>
+                        <TextBlock Text="{Binding LoopClosureText}" FontSize="9" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SecondaryAccentCyan}" Margin="0,0,0,12"/>
 
                         <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
 
@@ -450,6 +571,10 @@
                                                                 <Run Text="  &#xb7;  "/>
                                                                 <Run Text="{Binding ScuText, Mode=OneWay}"/>
                                                             </TextBlock>
+                                                            <TextBlock Text="{Binding PurchaseBreakdown}" FontSize="9"
+                                                                       Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,2"/>
+                                                            <TextBlock Text="{Binding SaleBreakdown}" FontSize="9"
+                                                                       Foreground="{DynamicResource SecondaryTextColor}" Margin="0,0,0,6"/>
 
                                                             <!-- Stock / demand bars -->
                                                             <Grid Margin="0,0,0,2">
@@ -494,7 +619,7 @@
             </Grid>
 
             <!-- ==================== BEST SINGLE ROUTES ==================== -->
-            <Border Grid.Row="3" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="18">
+            <Border Grid.Row="4" Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="18">
                 <StackPanel>
                     <TextBlock Text="{Binding BestRoutesHeader}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,10"/>
 
@@ -505,10 +630,10 @@
                                 <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition Width="1.4*"/>
                                 <ColumnDefinition Width="2*"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="0.9*"/>
+                                <ColumnDefinition Width="0.9*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="0.8*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="START" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
                             <TextBlock Grid.Column="1" Text="COMMODITY" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource DarkModeSubtextBrush}"/>
@@ -530,10 +655,10 @@
                                                 <ColumnDefinition Width="2*"/>
                                                 <ColumnDefinition Width="1.4*"/>
                                                 <ColumnDefinition Width="2*"/>
-                                                <ColumnDefinition Width="90"/>
-                                                <ColumnDefinition Width="90"/>
-                                                <ColumnDefinition Width="110"/>
-                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="0.9*"/>
+                                                <ColumnDefinition Width="0.9*"/>
+                                                <ColumnDefinition Width="1.2*"/>
+                                                <ColumnDefinition Width="0.8*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Start}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Commodity}" FontSize="10" Foreground="#b38600" TextTrimming="CharacterEllipsis"/>

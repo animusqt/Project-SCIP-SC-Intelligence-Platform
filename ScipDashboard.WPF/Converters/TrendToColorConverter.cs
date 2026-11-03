@@ -13,10 +13,8 @@ namespace ScipDashboard.WPF.Converters
             {
                 return trend switch
                 {
-                    "Strong Buy" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E")),
-                    "Weak Buy" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4ADE80")),
-                    "Marginal" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")),
-                    "Avoid" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")),
+                    "Up" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E")),
+                    "Down" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")),
                     _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8"))
                 };
             }

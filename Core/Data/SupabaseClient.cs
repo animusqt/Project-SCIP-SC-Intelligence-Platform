@@ -143,6 +143,44 @@ namespace ScipDashboard.Core.Data
             return (accessToken, userId, null);
         }
 
+        public Uri CreateOAuthAuthorizationUri(string provider, string redirectUri, string codeChallenge)
+        {
+            if (string.IsNullOrWhiteSpace(provider) ||
+                !string.Equals(provider, "discord", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(provider, "google", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Only Discord and Google OAuth providers are supported.", nameof(provider));
+
+            var query = $"provider={Uri.EscapeDataString(provider.ToLowerInvariant())}&redirect_to={Uri.EscapeDataString(redirectUri)}" +
+                        $"&code_challenge={Uri.EscapeDataString(codeChallenge)}&code_challenge_method=s256";
+            return new Uri($"{_supabaseUrl}/auth/v1/authorize?{query}");
+        }
+
+        public Uri CreateDiscordAuthorizationUri(string redirectUri, string codeChallenge) =>
+            CreateOAuthAuthorizationUri("discord", redirectUri, codeChallenge);
+
+        public async Task<(string? AccessToken, string? UserId, string? Error)> ExchangePkceCodeAsync(
+            string authorizationCode,
+            string codeVerifier)
+        {
+            var url = $"{_supabaseUrl}/auth/v1/token?grant_type=pkce";
+            var payload = new { auth_code = authorizationCode, code_verifier = codeVerifier };
+            using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            using var response = await _httpClient.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                return (null, null, body);
+
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            var accessToken = root.TryGetProperty("access_token", out var token) ? token.GetString() : null;
+            var userId = root.TryGetProperty("user", out var user) && user.TryGetProperty("id", out var id)
+                ? id.GetString()
+                : null;
+            return string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(userId)
+                ? (null, null, "Supabase returned an incomplete OAuth session.")
+                : (accessToken, userId, null);
+        }
+
         /// <summary>
         /// Sign up with email and password via Supabase Auth.
         /// </summary>

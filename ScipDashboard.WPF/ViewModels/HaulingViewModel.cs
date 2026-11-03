@@ -2,30 +2,43 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ScipDashboard.Core.Data;
 using ScipDashboard.Core.Models;
 using ScipDashboard.Core.Services;
+using ScipDashboard.WPF.Services;
 
 namespace ScipDashboard.WPF.ViewModels
 {
     public class HaulingViewModel : INotifyPropertyChanged
     {
         private readonly IDataService _dataService;
+        private readonly IMarketDataService? _marketDataService;
         private List<Location> _allLocations = new List<Location>();
         private List<Commodity> _allCommodities = new List<Commodity>();
         private List<PriceObservation> _allObservations = new List<PriceObservation>();
         private decimal _remainingCash;
+        private HashSet<string> _enabledRouteCategories = new(StringComparer.OrdinalIgnoreCase);
+        private HashSet<string> _enabledRouteSystems = new(StringComparer.OrdinalIgnoreCase);
+        private bool _routeFiltersConfigured;
 
         public HaulingViewModel(IDataService dataService)
+            : this(dataService, null)
+        {
+        }
+
+        public HaulingViewModel(IDataService dataService, IMarketDataService? marketDataService)
         {
             _dataService = dataService;
+            _marketDataService = marketDataService;
 
             AddLegCommand = new RelayCommand(p => ExecuteAddLeg(p), _ => CanAddLeg);
-            SaveLoopCommand = new RelayCommand(async () => await ExecuteSaveLoopAsync(), () => Legs.Count > 0 && !string.IsNullOrWhiteSpace(LoopName));
+            SaveLoopCommand = new RelayCommand(async () => await ExecuteSaveLoopAsync(), () => IsLoopClosed && !string.IsNullOrWhiteSpace(LoopName));
             ClearLoopCommand = new RelayCommand(p => ExecuteClearLoop(p));
             RefreshCommand = new RelayCommand(async () => await LoadDataAsync());
             RecommendedBoxCommand = new RelayCommand(() => SelectedMaxBox = RecommendedMaxBox);
@@ -38,7 +51,18 @@ namespace ScipDashboard.WPF.ViewModels
         public string CargoCapacity
         {
             get => _cargoCapacity;
-            set { _cargoCapacity = value; OnPropertyChanged(); OnPropertyChanged(nameof(StatCargoCapacity)); RaiseCommandStates(); }
+            set
+            {
+                if (_cargoCapacity == value) return;
+                _cargoCapacity = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(StatCargoCapacity));
+                OnPropertyChanged(nameof(SelectedRoutePreview));
+                RebuildBestRoutes();
+                RebuildLoopOptions();
+                RebuildCurrentLegOptions();
+                RaiseCommandStates();
+            }
         }
 
         private string _startingCapital = "100000";
@@ -48,12 +72,13 @@ namespace ScipDashboard.WPF.ViewModels
             set
             {
                 _startingCapital = value;
-                if (Legs.Count == 0)
-                {
-                    _remainingCash = ParseDecimal(value, 100000m);
-                    OnPropertyChanged(nameof(CashOnHandText));
-                }
+                _remainingCash = ParseDecimal(value, 100000m) + Legs.Sum(leg => leg.Profit);
+                OnPropertyChanged(nameof(CashOnHandText));
+                OnPropertyChanged(nameof(SelectedRoutePreview));
                 OnPropertyChanged();
+                RebuildBestRoutes();
+                RebuildLoopOptions();
+                RebuildCurrentLegOptions();
             }
         }
 
@@ -63,7 +88,13 @@ namespace ScipDashboard.WPF.ViewModels
         public int SelectedMaxBox
         {
             get => _selectedMaxBox;
-            set { _selectedMaxBox = value; OnPropertyChanged(); }
+            set
+            {
+                if (_selectedMaxBox == value) return;
+                _selectedMaxBox = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedRoutePreview));
+            }
         }
 
         private int _recommendedMaxBox = 24;
@@ -82,6 +113,53 @@ namespace ScipDashboard.WPF.ViewModels
 
         public ObservableCollection<Location> Stations { get; } = new ObservableCollection<Location>();
 
+        public ObservableCollection<LocationCatalogEntry> FilteredCatalogLocations { get; } = new ObservableCollection<LocationCatalogEntry>();
+        public ObservableCollection<string> LocationSystems { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> LocationTypes { get; } = new ObservableCollection<string>();
+
+        private readonly List<LocationCatalogEntry> _locationCatalog = new List<LocationCatalogEntry>();
+        private string _locationSearchText = string.Empty;
+        public string LocationSearchText
+        {
+            get => _locationSearchText;
+            set
+            {
+                if (_locationSearchText == value) return;
+                _locationSearchText = value;
+                OnPropertyChanged();
+                ApplyLocationFilters();
+            }
+        }
+
+        private string _selectedLocationSystem = "All Systems";
+        public string SelectedLocationSystem
+        {
+            get => _selectedLocationSystem;
+            set
+            {
+                if (_selectedLocationSystem == value) return;
+                _selectedLocationSystem = value;
+                OnPropertyChanged();
+                ApplyLocationFilters();
+            }
+        }
+
+        private string _selectedLocationType = "All Types";
+        public string SelectedLocationType
+        {
+            get => _selectedLocationType;
+            set
+            {
+                if (_selectedLocationType == value) return;
+                _selectedLocationType = value;
+                OnPropertyChanged();
+                ApplyLocationFilters();
+            }
+        }
+
+        public string LocationCatalogSummary =>
+            $"{FilteredCatalogLocations.Count:N0} of {_locationCatalog.Count:N0} locations · filter by name, system, or type";
+
         private Location? _selectedStation;
         public Location? SelectedStation
         {
@@ -91,14 +169,23 @@ namespace ScipDashboard.WPF.ViewModels
                 _selectedStation = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasStationSelection));
+                OnPropertyChanged(nameof(CommodityOptionsMessage));
                 RebuildCommodityOptions();
+                OnPropertyChanged(nameof(SelectedRoutePreview));
                 RaiseCommandStates();
+                OnPropertyChanged(nameof(BuilderStepSummary));
             }
         }
 
         public bool HasStationSelection => _selectedStation != null;
 
         public ObservableCollection<LegCommodityOption> CommodityOptions { get; } = new ObservableCollection<LegCommodityOption>();
+
+        public string CommodityOptionsMessage => _selectedStation == null
+            ? "Choose a station to see available commodities."
+            : CommodityOptions.Count == 0
+                ? $"No current buy stock is reported at {_selectedStation.Name}."
+                : "Choose a commodity stocked at the selected station.";
 
         private LegCommodityOption? _selectedCommodityOption;
         public LegCommodityOption? SelectedCommodityOption
@@ -110,7 +197,9 @@ namespace ScipDashboard.WPF.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasCommoditySelection));
                 RebuildDestinationOptions();
+                OnPropertyChanged(nameof(SelectedRoutePreview));
                 RaiseCommandStates();
+                OnPropertyChanged(nameof(BuilderStepSummary));
             }
         }
 
@@ -127,13 +216,17 @@ namespace ScipDashboard.WPF.ViewModels
                 _selectedDestinationOption = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasDestinationSelection));
+                OnPropertyChanged(nameof(SelectedRoutePreview));
                 RaiseCommandStates();
+                OnPropertyChanged(nameof(BuilderStepSummary));
             }
         }
 
         public bool HasDestinationSelection => _selectedDestinationOption != null;
 
-        public bool CanAddLeg => HasStationSelection && HasCommoditySelection && HasDestinationSelection;
+        public bool CanAddLeg => HasStationSelection && HasCommoditySelection && HasDestinationSelection &&
+                                 Legs.Count < 4 && !IsLoopClosed &&
+                                 (Legs.Count == 0 || Legs[^1].To.Id == SelectedStation?.Id);
 
         public ObservableCollection<RouteLeg> Legs { get; } = new ObservableCollection<RouteLeg>();
 
@@ -145,6 +238,30 @@ namespace ScipDashboard.WPF.ViewModels
 
         public bool HasLegs => Legs.Count > 0;
         public bool NoLegs => Legs.Count == 0;
+        public bool IsLoopClosed => Legs.Count is >= 2 and <= 4 &&
+                                    Legs[0].From.Id == Legs[^1].To.Id &&
+                                    Legs.Zip(Legs.Skip(1), (first, next) => first.To.Id == next.From.Id).All(isConnected => isConnected);
+        public string LoopClosureText => IsLoopClosed
+            ? $"Closed loop: {Legs[0].From.Name} → {Legs[^1].To.Name} · +{LoopTotalProfit:N0} aUEC"
+            : Legs.Count == 0
+                ? "Add 2–4 connected, profitable legs and return to your starting terminal/orbit to close the loop."
+                : Legs.Count >= 4
+                    ? "This route is at the 4-leg limit. The final destination must be the starting terminal/orbit."
+                    : "Loop not closed yet. Continue from the last destination and finish at the starting terminal/orbit.";
+
+        public string SelectedRoutePreview
+        {
+            get
+            {
+                if (_selectedStation == null || _selectedCommodityOption == null || _selectedDestinationOption == null)
+                    return "Select a buy terminal, commodity, and sell terminal to preview total spend and profit.";
+
+                var leg = BuildLeg(_selectedStation, _selectedCommodityOption, _selectedDestinationOption);
+                return leg == null
+                    ? "No executable profit at the selected prices, stock, demand, cargo capacity, and cash."
+                    : $"{leg.From.Name} → {leg.Commodity.Name} → {leg.To.Name} · Buy {leg.Quantity:N0} SCU × {leg.BuyPrice:N0} = {leg.BuyCost:N0} aUEC · Sell {leg.Quantity:N0} SCU × {leg.SellPrice:N0} = {leg.SellRevenue:N0} aUEC · Net +{leg.Profit:N0} aUEC";
+            }
+        }
 
         private string _loopName = string.Empty;
         public string LoopName
@@ -171,8 +288,27 @@ namespace ScipDashboard.WPF.ViewModels
         }
 
         public string LoopOptionsHeader => LoopOptions.Count > 0
-            ? $"Pick from {LoopOptions.Count} alternative loops."
-            : "No profitable loops found in current market data.";
+            ? $"Showing up to 4 profitable loops. Each starts and ends at the same terminal/orbit (2–4 legs), with spend, revenue, and net profit based on SCU."
+            : "No profitable closed loops (2–4 legs) found in current market data.";
+
+        public string BuilderStepSummary
+        {
+            get
+            {
+                if (SelectedStation == null)
+                    return "1. Buy at a station  →  2. Carry a commodity stocked there  →  3. Sell at a station with demand";
+
+                var buy = $"BUY AT {SelectedStation.Name}";
+                if (SelectedCommodityOption == null)
+                    return $"{buy}  →  choose a commodity available here  →  choose a sell station";
+
+                var carry = $"CARRY {SelectedCommodityOption.Name}";
+                if (SelectedDestinationOption == null)
+                    return $"{buy}  →  {carry}  →  choose a station with demand";
+
+                return $"{buy}  →  {carry}  →  SELL AT {SelectedDestinationOption.Name}";
+            }
+        }
 
         public string StatCargoCapacity => $"{ParseInt(CargoCapacity, 96):N0} SCU";
 
@@ -212,14 +348,27 @@ namespace ScipDashboard.WPF.ViewModels
             try
             {
                 StatusMessage = "Loading market data...";
+                LoadLocationCatalog();
+
+                if (_marketDataService != null)
+                    await _marketDataService.RefreshFromUEXCorpAsync();
 
                 var marketData = await _dataService.GetMarketDataAsync();
                 _allLocations = marketData.Locations ?? new List<Location>();
                 _allCommodities = marketData.Commodities ?? new List<Commodity>();
                 _allObservations = marketData.PriceObservations ?? new List<PriceObservation>();
+                LoadRoutingFilters();
 
                 Stations.Clear();
-                foreach (var loc in _allLocations.Where(l => l.IsActive && l.HasCommoditiesMarket).OrderBy(l => l.Name))
+                var observedMarketLocationIds = _allObservations
+                    .Where(observation => observation.BuyPrice > 0 && observation.Volume > 0)
+                    .Select(observation => observation.LocationId)
+                    .ToHashSet(StringComparer.Ordinal);
+                foreach (var loc in _allLocations
+                    .Where(location => location.IsActive && location.HasCommoditiesMarket &&
+                                       observedMarketLocationIds.Contains(location.Id) &&
+                                       IsRouteLocationAllowed(location))
+                    .OrderBy(location => location.Name))
                     Stations.Add(loc);
 
                 var ships = await _dataService.GetShipsAsync();
@@ -231,7 +380,19 @@ namespace ScipDashboard.WPF.ViewModels
                 RebuildBestRoutes();
                 RebuildLoopOptions();
 
-                StatusMessage = $"Loaded {_allCommodities.Count} commodities across {Stations.Count} stations";
+                if (_marketDataService?.CurrentStatus == DataSourceStatus.Live)
+                {
+                    StatusMessage = BestRoutes.Count > 0
+                        ? $"UEXCorp live: {Stations.Count} terminals, {BestRoutes.Count} profitable single routes, {LoopOptions.Count} auto loops. SC DataHub catalog loaded; SC-Truckers uses the same UEX feed."
+                        : $"UEXCorp live: {Stations.Count} market terminals loaded, but no profitable routes match current stock and demand. SC DataHub reference prices do not include terminal inventory.";
+                }
+                else
+                {
+                    var error = _marketDataService?.LastError;
+                    StatusMessage = Stations.Count == 0
+                        ? $"No observed market terminals are available. SC DataHub reference prices are location-free and cannot build routes. {error}"
+                        : $"Loaded {_allCommodities.Count} commodities across {Stations.Count} terminals. Live UEX refresh unavailable. {error}";
+                }
             }
             catch (Exception ex)
             {
@@ -239,11 +400,185 @@ namespace ScipDashboard.WPF.ViewModels
             }
         }
 
-        private PriceObservation? BestSellFor(string commodityId, string excludeLocationId)
+        private void LoadLocationCatalog()
+        {
+            if (_locationCatalog.Count > 0) return;
+
+            var catalogPath = Path.Combine(AppContext.BaseDirectory, "Data", "location-catalog.json");
+            if (!File.Exists(catalogPath))
+                throw new FileNotFoundException("The bundled hauling location catalog is missing.", catalogPath);
+
+            var json = File.ReadAllText(catalogPath);
+            var locations = JsonSerializer.Deserialize<List<LocationCatalogEntry>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            if (locations == null)
+                throw new InvalidDataException("The bundled hauling location catalog could not be read.");
+
+            _locationCatalog.AddRange(locations);
+
+            LocationSystems.Clear();
+            LocationSystems.Add("All Systems");
+            foreach (var system in _locationCatalog
+                .Select(location => location.SystemName)
+                .Where(system => !string.IsNullOrWhiteSpace(system))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(system => system))
+            {
+                LocationSystems.Add(system);
+            }
+
+            LocationTypes.Clear();
+            LocationTypes.Add("All Types");
+            foreach (var type in _locationCatalog
+                .Select(location => location.Type)
+                .Where(type => !string.IsNullOrWhiteSpace(type))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(type => type))
+            {
+                LocationTypes.Add(type);
+            }
+
+            ApplyLocationFilters();
+        }
+
+        private void ApplyLocationFilters()
+        {
+            var search = LocationSearchText.Trim();
+            var filtered = _locationCatalog.Where(location =>
+                (string.IsNullOrEmpty(search) ||
+                    location.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    location.ParentName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    location.SystemName.Contains(search, StringComparison.OrdinalIgnoreCase)) &&
+                (SelectedLocationSystem == "All Systems" ||
+                    string.Equals(location.SystemName, SelectedLocationSystem, StringComparison.OrdinalIgnoreCase)) &&
+                (SelectedLocationType == "All Types" ||
+                    string.Equals(location.Type, SelectedLocationType, StringComparison.OrdinalIgnoreCase)));
+
+            FilteredCatalogLocations.Clear();
+            foreach (var location in filtered)
+                FilteredCatalogLocations.Add(location);
+
+            OnPropertyChanged(nameof(LocationCatalogSummary));
+        }
+
+        private void LoadRoutingFilters()
+        {
+            try
+            {
+                var settings = LocalFeatureStore.Read<RoutingFilterSettings>("routing-filters.json");
+                _routeFiltersConfigured = settings.IsConfigured;
+                _enabledRouteCategories = settings.IsConfigured
+                    ? new HashSet<string>(settings.EnabledCategories ?? new List<string>(), StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(
+                        new[] { "Asteroid clusters", "Naval bases", "Outposts", "Settlements", "Space stations" },
+                        StringComparer.OrdinalIgnoreCase);
+                _enabledRouteSystems = settings.IsConfigured
+                    ? new HashSet<string>(settings.EnabledSystems ?? new List<string>(), StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(
+                        _locationCatalog.Select(location => location.SystemName),
+                        StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                _routeFiltersConfigured = false;
+                _enabledRouteCategories = new HashSet<string>(
+                    new[] { "Asteroid clusters", "Naval bases", "Outposts", "Settlements", "Space stations" },
+                    StringComparer.OrdinalIgnoreCase);
+                _enabledRouteSystems = new HashSet<string>(
+                    _locationCatalog.Select(location => location.SystemName),
+                    StringComparer.OrdinalIgnoreCase);
+                StatusMessage = $"Could not load saved route filters; using all locations. {ex.Message}";
+            }
+        }
+
+        private bool IsRouteLocationAllowed(Location location)
+        {
+            if (_routeFiltersConfigured &&
+                (!_enabledRouteSystems.Contains(location.SystemName) ||
+                 !_enabledRouteCategories.Contains(GetRouteLocationCategory(location))))
+                return false;
+
+            return true;
+        }
+
+        private string GetRouteLocationCategory(Location location)
+        {
+            if (location.Name.StartsWith("HDMS", StringComparison.OrdinalIgnoreCase) ||
+                location.Type.Contains("naval", StringComparison.OrdinalIgnoreCase) ||
+                location.Type.Contains("military", StringComparison.OrdinalIgnoreCase))
+                return "Naval bases";
+
+            if (location.Name.Contains("asteroid", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Contains("cluster", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Contains("mine", StringComparison.OrdinalIgnoreCase) ||
+                _locationCatalog.Any(entry =>
+                    string.Equals(entry.Name, location.Name, StringComparison.OrdinalIgnoreCase) &&
+                    entry.Type.Contains("asteroid", StringComparison.OrdinalIgnoreCase)))
+                return "Asteroid clusters";
+
+            if (location.Name.Contains("outpost", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Contains("research", StringComparison.OrdinalIgnoreCase) ||
+                _locationCatalog.Any(entry =>
+                    string.Equals(entry.Name, location.Name, StringComparison.OrdinalIgnoreCase) &&
+                    entry.Type.Contains("outpost", StringComparison.OrdinalIgnoreCase)))
+                return "Outposts";
+
+            if (location.Name.Equals("Everus Harbor", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Equals("Lorville", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Equals("Area18", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Equals("Orison", StringComparison.OrdinalIgnoreCase) ||
+                location.Name.Equals("New Babbage", StringComparison.OrdinalIgnoreCase) ||
+                _locationCatalog.Any(entry =>
+                    string.Equals(entry.Name, location.Name, StringComparison.OrdinalIgnoreCase) &&
+                    (entry.Type.Equals("City", StringComparison.OrdinalIgnoreCase) ||
+                     entry.Type.Equals("Landing Zone", StringComparison.OrdinalIgnoreCase))))
+                return "Settlements";
+
+            return "Space stations";
+        }
+
+        private PriceObservation? BestSellFor(
+            string commodityId,
+            string excludeLocationId,
+            decimal buyPrice,
+            int buyStock,
+            int cargo,
+            decimal availableCash)
+        {
+            if (buyPrice <= 0 || buyStock <= 0)
+                return null;
+
+            var affordable = (int)Math.Min(int.MaxValue, availableCash / buyPrice);
+            return _allObservations
+                .Where(observation => observation.CommodityId == commodityId &&
+                                      observation.LocationId != excludeLocationId &&
+                                      _allLocations.FirstOrDefault(location => location.Id == observation.LocationId) is { } location &&
+                                      IsTerminalOrOrbit(location) &&
+                                      IsRouteLocationAllowed(location))
+                .GroupBy(observation => observation.LocationId)
+                .Select(group => group.OrderByDescending(observation => observation.Timestamp).First())
+                .Where(observation => observation.SellPrice > buyPrice && observation.DemandVolume > 0)
+                .Select(observation => new
+                {
+                    Observation = observation,
+                    Quantity = Math.Min(cargo, Math.Min(Math.Min(buyStock, observation.DemandVolume), affordable))
+                })
+                .Where(candidate => candidate.Quantity > 0)
+                .OrderByDescending(candidate =>
+                    (candidate.Observation.SellPrice - buyPrice) * candidate.Quantity)
+                .ThenByDescending(candidate => candidate.Observation.SellPrice)
+                .Select(candidate => candidate.Observation)
+                .FirstOrDefault();
+        }
+
+        private PriceObservation? LatestObservationFor(string commodityId, string locationId)
         {
             return _allObservations
-                .Where(o => o.CommodityId == commodityId && o.LocationId != excludeLocationId)
-                .OrderByDescending(o => o.SellPrice)
+                .Where(observation => observation.CommodityId == commodityId &&
+                                      observation.LocationId == locationId)
+                .OrderByDescending(observation => observation.Timestamp)
                 .FirstOrDefault();
         }
 
@@ -253,40 +588,66 @@ namespace ScipDashboard.WPF.ViewModels
             _selectedCommodityOption = null;
             OnPropertyChanged(nameof(SelectedCommodityOption));
             OnPropertyChanged(nameof(HasCommoditySelection));
+            OnPropertyChanged(nameof(CommodityOptionsMessage));
+            _selectedDestinationOption = null;
+            DestinationOptions.Clear();
+            OnPropertyChanged(nameof(SelectedDestinationOption));
+            OnPropertyChanged(nameof(HasDestinationSelection));
 
             if (_selectedStation == null)
-            {
-                DestinationOptions.Clear();
                 return;
-            }
 
             int cargo = ParseInt(CargoCapacity, 96);
+            decimal availableCash = _remainingCash;
 
             var options = new List<LegCommodityOption>();
             foreach (var commodity in _allCommodities)
             {
-                var buyObs = _allObservations.FirstOrDefault(o => o.CommodityId == commodity.Id && o.LocationId == _selectedStation.Id);
-                if (buyObs == null || buyObs.BuyPrice <= 0) continue;
+                var buyObs = LatestObservationFor(commodity.Id, _selectedStation.Id);
+                if (buyObs == null || buyObs.BuyPrice <= 0 || buyObs.Volume <= 0) continue;
 
-                var bestSell = BestSellFor(commodity.Id, _selectedStation.Id);
-                if (bestSell == null || bestSell.SellPrice <= buyObs.BuyPrice) continue;
+                var bestSell = BestSellFor(
+                    commodity.Id,
+                    _selectedStation.Id,
+                    buyObs.BuyPrice,
+                    buyObs.Volume,
+                    cargo,
+                    availableCash);
+                bool hasProfitableSell = bestSell != null && bestSell.SellPrice > buyObs.BuyPrice;
+                decimal marginPct = hasProfitableSell
+                    ? (bestSell!.SellPrice - buyObs.BuyPrice) / buyObs.BuyPrice * 100m
+                    : 0m;
+                int affordable = (int)Math.Min(int.MaxValue, availableCash / buyObs.BuyPrice);
+                int qty = hasProfitableSell
+                    ? Math.Min(cargo, Math.Min(Math.Min(buyObs.Volume, bestSell!.DemandVolume), affordable))
+                    : Math.Min(cargo, Math.Min(buyObs.Volume, affordable));
+                if (qty <= 0) continue;
 
-                decimal marginPct = (bestSell.SellPrice - buyObs.BuyPrice) / buyObs.BuyPrice * 100m;
-                int qty = Math.Min(cargo, Math.Min(buyObs.Volume, bestSell.Volume));
-
+                var profitPerScu = hasProfitableSell ? bestSell!.SellPrice - buyObs.BuyPrice : 0m;
                 options.Add(new LegCommodityOption
                 {
                     Id = commodity.Id,
                     Name = commodity.Name,
                     BuyPrice = buyObs.BuyPrice,
                     MarginPercent = Math.Round(marginPct, 1),
-                    EstimatedProfitPerScu = Math.Round(bestSell.SellPrice - buyObs.BuyPrice, 2),
-                    StockVolume = buyObs.Volume
+                    EstimatedProfitPerScu = Math.Round(profitPerScu, 2),
+                    EstimatedQuantity = qty,
+                    EstimatedTotalProfit = Math.Round(profitPerScu * qty, 0),
+                    UexAverageIndex = commodity.UexAverageIndex,
+                    HasUexAverageIndex = commodity.UexAverageBuyPrice > 0 || commodity.UexAverageSellPrice > 0,
+                    StockVolume = buyObs.Volume,
+                    BuyAtStation = _selectedStation.Name,
+                    HasProfitableSell = hasProfitableSell
                 });
             }
 
-            foreach (var option in options.OrderByDescending(o => o.EstimatedProfitPerScu))
+            foreach (var option in options
+                         .OrderByDescending(o => o.EstimatedTotalProfit)
+                         .ThenByDescending(o => o.EstimatedProfitPerScu)
+                         .ThenByDescending(o => o.UexAverageIndex))
                 CommodityOptions.Add(option);
+
+            OnPropertyChanged(nameof(CommodityOptionsMessage));
         }
 
         private void RebuildDestinationOptions()
@@ -298,15 +659,30 @@ namespace ScipDashboard.WPF.ViewModels
 
             if (_selectedStation == null || _selectedCommodityOption == null) return;
 
+            decimal availableCash = _remainingCash;
+            int cargo = ParseInt(CargoCapacity, 96);
             var options = new List<LegDestinationOption>();
-            foreach (var obs in _allObservations.Where(o => o.CommodityId == _selectedCommodityOption.Id && o.LocationId != _selectedStation.Id))
+            foreach (var obs in _allObservations
+                .Where(observation => observation.CommodityId == _selectedCommodityOption.Id &&
+                                      observation.LocationId != _selectedStation.Id &&
+                                      _allLocations.FirstOrDefault(location => location.Id == observation.LocationId) is { } location &&
+                                      IsTerminalOrOrbit(location) &&
+                                      IsRouteLocationAllowed(location))
+                .GroupBy(observation => observation.LocationId)
+                .Select(group => group.OrderByDescending(observation => observation.Timestamp).First()))
             {
-                if (obs.SellPrice <= _selectedCommodityOption.BuyPrice) continue;
+                if (obs.SellPrice <= _selectedCommodityOption.BuyPrice || obs.DemandVolume <= 0) continue;
 
                 var location = _allLocations.FirstOrDefault(l => l.Id == obs.LocationId);
                 if (location == null) continue;
 
                 decimal marginPct = (obs.SellPrice - _selectedCommodityOption.BuyPrice) / _selectedCommodityOption.BuyPrice * 100m;
+                var buyObservation = LatestObservationFor(_selectedCommodityOption.Id, _selectedStation.Id);
+                if (buyObservation == null || buyObservation.BuyPrice <= 0) continue;
+                int affordable = (int)Math.Min(int.MaxValue, availableCash / buyObservation.BuyPrice);
+                int quantity = Math.Min(cargo, Math.Min(Math.Min(buyObservation.Volume, obs.DemandVolume), affordable));
+                if (quantity <= 0) continue;
+                decimal profitPerScu = obs.SellPrice - buyObservation.BuyPrice;
 
                 options.Add(new LegDestinationOption
                 {
@@ -316,12 +692,26 @@ namespace ScipDashboard.WPF.ViewModels
                     Type = location.Type,
                     SellPrice = obs.SellPrice,
                     MarginPercent = Math.Round(marginPct, 1),
-                    DemandVolume = obs.Volume
+                    DemandVolume = obs.DemandVolume,
+                    EstimatedQuantity = quantity,
+                    EstimatedTotalProfit = Math.Round(profitPerScu * quantity, 0)
                 });
             }
 
-            foreach (var option in options.OrderByDescending(o => o.SellPrice))
+            foreach (var option in options.OrderByDescending(o => o.EstimatedTotalProfit))
                 DestinationOptions.Add(option);
+        }
+
+        private void RebuildCurrentLegOptions()
+        {
+            var selectedCommodityId = _selectedCommodityOption?.Id;
+            var selectedDestinationId = _selectedDestinationOption?.Id;
+            RebuildCommodityOptions();
+
+            if (selectedCommodityId != null)
+                SelectedCommodityOption = CommodityOptions.FirstOrDefault(option => option.Id == selectedCommodityId);
+            if (selectedDestinationId != null)
+                SelectedDestinationOption = DestinationOptions.FirstOrDefault(option => option.Id == selectedDestinationId);
         }
 
         private void ExecuteAddLeg(object? parameter)
@@ -346,6 +736,9 @@ namespace ScipDashboard.WPF.ViewModels
             OnPropertyChanged(nameof(LoopTotalProfit));
             OnPropertyChanged(nameof(LoopTotalText));
             OnPropertyChanged(nameof(CashOnHandText));
+            OnPropertyChanged(nameof(IsLoopClosed));
+            OnPropertyChanged(nameof(LoopClosureText));
+            OnPropertyChanged(nameof(SelectedRoutePreview));
             OnPropertyChanged(nameof(HasLegs));
             OnPropertyChanged(nameof(NoLegs));
             RaiseCommandStates();
@@ -354,15 +747,19 @@ namespace ScipDashboard.WPF.ViewModels
         private RouteLeg? BuildLeg(Location from, LegCommodityOption commodityOption, LegDestinationOption destinationOption)
         {
             var commodity = _allCommodities.FirstOrDefault(c => c.Id == commodityOption.Id);
-            var buyObs = _allObservations.FirstOrDefault(o => o.CommodityId == commodityOption.Id && o.LocationId == from.Id);
-            var sellObs = _allObservations.FirstOrDefault(o => o.CommodityId == commodityOption.Id && o.LocationId == destinationOption.Id);
+            var buyObs = LatestObservationFor(commodityOption.Id, from.Id);
+            var sellObs = LatestObservationFor(commodityOption.Id, destinationOption.Id);
             var to = _allLocations.FirstOrDefault(l => l.Id == destinationOption.Id);
             if (commodity == null || buyObs == null || sellObs == null || to == null) return null;
-            if (buyObs.BuyPrice <= 0 || sellObs.SellPrice <= buyObs.BuyPrice) return null;
+            if (!IsTerminalOrOrbit(from) || !IsTerminalOrOrbit(to) ||
+                buyObs.BuyPrice <= 0 || sellObs.SellPrice <= buyObs.BuyPrice ||
+                buyObs.Volume <= 0 || sellObs.DemandVolume <= 0) return null;
 
             int cargo = ParseInt(CargoCapacity, 96);
-            int affordable = buyObs.BuyPrice > 0 ? (int)(_remainingCash / buyObs.BuyPrice) : 0;
-            int qty = Math.Min(cargo, Math.Min(Math.Min(buyObs.Volume, sellObs.Volume), affordable));
+            int affordable = buyObs.BuyPrice > 0
+                ? (int)Math.Min(int.MaxValue, _remainingCash / buyObs.BuyPrice)
+                : 0;
+            int qty = Math.Min(cargo, Math.Min(Math.Min(buyObs.Volume, sellObs.DemandVolume), affordable));
             if (qty <= 0) return null;
 
             decimal spread = sellObs.SellPrice - buyObs.BuyPrice;
@@ -378,7 +775,7 @@ namespace ScipDashboard.WPF.ViewModels
                 Quantity = qty,
                 CargoCapacity = cargo,
                 BuyStock = buyObs.Volume,
-                SellDemand = sellObs.Volume,
+                SellDemand = sellObs.DemandVolume,
                 Profit = Math.Round(spread * qty, 0)
             };
         }
@@ -401,6 +798,9 @@ namespace ScipDashboard.WPF.ViewModels
             OnPropertyChanged(nameof(LoopTotalProfit));
             OnPropertyChanged(nameof(LoopTotalText));
             OnPropertyChanged(nameof(CashOnHandText));
+            OnPropertyChanged(nameof(IsLoopClosed));
+            OnPropertyChanged(nameof(LoopClosureText));
+            OnPropertyChanged(nameof(SelectedRoutePreview));
             OnPropertyChanged(nameof(HasLegs));
             OnPropertyChanged(nameof(NoLegs));
             RaiseCommandStates();
@@ -438,6 +838,9 @@ namespace ScipDashboard.WPF.ViewModels
             OnPropertyChanged(nameof(LoopTotalProfit));
             OnPropertyChanged(nameof(LoopTotalText));
             OnPropertyChanged(nameof(CashOnHandText));
+            OnPropertyChanged(nameof(IsLoopClosed));
+            OnPropertyChanged(nameof(LoopClosureText));
+            OnPropertyChanged(nameof(SelectedRoutePreview));
             OnPropertyChanged(nameof(HasLegs));
             OnPropertyChanged(nameof(NoLegs));
             RaiseCommandStates();
@@ -445,7 +848,7 @@ namespace ScipDashboard.WPF.ViewModels
 
         private async Task ExecuteSaveLoopAsync()
         {
-            if (Legs.Count == 0 || string.IsNullOrWhiteSpace(LoopName))
+            if (!IsLoopClosed || string.IsNullOrWhiteSpace(LoopName))
                 return;
 
             try
@@ -541,98 +944,143 @@ namespace ScipDashboard.WPF.ViewModels
 
             int cargo = ParseInt(CargoCapacity, 96);
             decimal cash = ParseDecimal(StartingCapital, 100000m);
+            var observationsByCommodity = _allObservations
+                .GroupBy(observation => observation.CommodityId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .GroupBy(observation => observation.LocationId)
+                        .Select(locationGroup => locationGroup.OrderByDescending(observation => observation.Timestamp).First())
+                        .ToList());
+            var locationsById = _allLocations.ToDictionary(location => location.Id);
+            var completed = new Dictionary<string, LoopOption>(StringComparer.Ordinal);
 
-            var stationScores = Stations
-                .Select(s => new { Station = s, Best = FindBestLegFrom(s, cargo, cash, new HashSet<string>()) })
-                .Where(x => x.Best != null)
-                .OrderByDescending(x => x.Best!.Profit);
-
-            var built = new List<LoopOption>();
-            foreach (var entry in stationScores)
+            void Explore(Location start, Location current, HashSet<string> visited, List<RouteLeg> path, decimal availableCash)
             {
-                var option = BuildGreedyLoop(entry.Station, cargo, cash, built.Count + 1);
-                if (option.Legs.Count > 0)
+                if (completed.Count >= 64)
+                    return;
+
+                var candidates = FindLoopLegCandidates(current, cargo, availableCash, observationsByCommodity, locationsById);
+                var options = candidates
+                    .Where(leg => !string.Equals(leg.To.Id, start.Id, StringComparison.Ordinal) &&
+                                  !visited.Contains(leg.To.Id) &&
+                                  StringComparer.Ordinal.Compare(leg.To.Id, start.Id) > 0)
+                    .OrderByDescending(leg => leg.Profit)
+                    .Take(6)
+                    .Concat(candidates.Where(leg => string.Equals(leg.To.Id, start.Id, StringComparison.Ordinal)))
+                    .ToList();
+
+                foreach (var leg in options)
                 {
-                    option.TotalProfit = option.Legs.Sum(l => l.Profit);
-                    built.Add(option);
+                    if (string.Equals(leg.To.Id, start.Id, StringComparison.Ordinal))
+                    {
+                        if (path.Count == 0)
+                            continue;
+
+                        var closedLegs = path.Append(leg).ToList();
+                        var signature = string.Join("|", closedLegs.Select(routeLeg =>
+                            $"{routeLeg.From.Id}:{routeLeg.Commodity.Id}>{routeLeg.To.Id}"));
+                        if (!completed.ContainsKey(signature))
+                        {
+                            completed.Add(signature, new LoopOption
+                            {
+                                Legs = new ObservableCollection<RouteLeg>(closedLegs),
+                                TotalProfit = closedLegs.Sum(routeLeg => routeLeg.Profit),
+                                StartingCapital = cash
+                            });
+                        }
+                        continue;
+                    }
+
+                    if (path.Count >= 3)
+                        continue;
+
+                    path.Add(leg);
+                    visited.Add(leg.To.Id);
+                    Explore(start, leg.To, visited, path, availableCash + leg.Profit);
+                    visited.Remove(leg.To.Id);
+                    path.RemoveAt(path.Count - 1);
+                    if (completed.Count >= 64)
+                        return;
                 }
             }
 
+            foreach (var start in Stations.OrderBy(station => station.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                Explore(start, start, new HashSet<string>(StringComparer.Ordinal) { start.Id }, new List<RouteLeg>(), cash);
+                if (completed.Count >= 64)
+                    break;
+            }
+
             int index = 1;
-            foreach (var option in built.OrderByDescending(o => o.TotalProfit))
+            foreach (var option in completed.Values
+                .OrderByDescending(loop => loop.TotalProfit)
+                .ThenBy(loop => loop.Legs.Count)
+                .Take(4))
             {
                 option.Index = index++;
+                for (int step = 0; step < option.Legs.Count; step++)
+                    option.Legs[step].StepNumber = step + 1;
                 LoopOptions.Add(option);
             }
 
             OnPropertyChanged(nameof(LoopOptionsHeader));
         }
 
-        private LoopOption BuildGreedyLoop(Location start, int cargo, decimal cash, int index)
+        private List<RouteLeg> FindLoopLegCandidates(
+            Location from,
+            int cargo,
+            decimal cash,
+            IReadOnlyDictionary<string, List<PriceObservation>> observationsByCommodity,
+            IReadOnlyDictionary<string, Location> locationsById)
         {
-            var option = new LoopOption { Index = index };
-            var visited = new HashSet<string> { start.Id };
-            Location current = start;
-            decimal available = cash;
-
-            for (int step = 0; step < 8; step++)
-            {
-                var leg = FindBestLegFrom(current, cargo, available, visited);
-                if (leg == null) break;
-
-                leg.StepNumber = option.Legs.Count + 1;
-                option.Legs.Add(leg);
-                available += leg.Profit;
-                current = leg.To;
-                visited.Add(leg.To.Id);
-            }
-
-            return option;
-        }
-
-        private RouteLeg? FindBestLegFrom(Location from, int cargo, decimal cash, HashSet<string> visited)
-        {
-            RouteLeg? best = null;
-
+            var candidates = new List<RouteLeg>();
             foreach (var commodity in _allCommodities)
             {
-                var buyObs = _allObservations.FirstOrDefault(o => o.CommodityId == commodity.Id && o.LocationId == from.Id);
-                if (buyObs == null || buyObs.BuyPrice <= 0) continue;
+                if (!observationsByCommodity.TryGetValue(commodity.Id, out var observations))
+                    continue;
 
-                foreach (var sellObs in _allObservations.Where(o => o.CommodityId == commodity.Id && o.LocationId != from.Id))
+                var buyObservation = observations.FirstOrDefault(observation =>
+                    string.Equals(observation.LocationId, from.Id, StringComparison.Ordinal));
+                if (buyObservation == null || buyObservation.BuyPrice <= 0 || buyObservation.Volume <= 0)
+                    continue;
+
+                int affordable = (int)Math.Min(int.MaxValue, cash / buyObservation.BuyPrice);
+
+                foreach (var sellObservation in observations)
                 {
-                    if (visited.Contains(sellObs.LocationId)) continue;
-                    if (sellObs.SellPrice <= buyObs.BuyPrice) continue;
+                    if (string.Equals(sellObservation.LocationId, from.Id, StringComparison.Ordinal) ||
+                        sellObservation.SellPrice <= buyObservation.BuyPrice ||
+                        sellObservation.DemandVolume <= 0 ||
+                        !locationsById.TryGetValue(sellObservation.LocationId, out var to) ||
+                        !IsTerminalOrOrbit(from) ||
+                        !IsTerminalOrOrbit(to) ||
+                        !IsRouteLocationAllowed(to))
+                        continue;
 
-                    var to = _allLocations.FirstOrDefault(l => l.Id == sellObs.LocationId);
-                    if (to == null) continue;
+                    int quantity = Math.Min(cargo, Math.Min(Math.Min(buyObservation.Volume, sellObservation.DemandVolume), affordable));
+                    if (quantity <= 0)
+                        continue;
 
-                    int affordable = (int)(cash / buyObs.BuyPrice);
-                    int qty = Math.Min(cargo, Math.Min(Math.Min(buyObs.Volume, sellObs.Volume), affordable));
-                    if (qty <= 0) continue;
-
-                    decimal profit = Math.Round((sellObs.SellPrice - buyObs.BuyPrice) * qty, 0);
-                    if (best == null || profit > best.Profit)
+                    var spread = sellObservation.SellPrice - buyObservation.BuyPrice;
+                    candidates.Add(new RouteLeg
                     {
-                        best = new RouteLeg
-                        {
-                            From = from,
-                            To = to,
-                            Commodity = commodity,
-                            BuyPrice = buyObs.BuyPrice,
-                            SellPrice = sellObs.SellPrice,
-                            MarginPercent = Math.Round((sellObs.SellPrice - buyObs.BuyPrice) / buyObs.BuyPrice * 100m, 1),
-                            Quantity = qty,
-                            CargoCapacity = cargo,
-                            BuyStock = buyObs.Volume,
-                            SellDemand = sellObs.Volume,
-                            Profit = profit
-                        };
-                    }
+                        From = from,
+                        To = to,
+                        Commodity = commodity,
+                        BuyPrice = buyObservation.BuyPrice,
+                        SellPrice = sellObservation.SellPrice,
+                        MarginPercent = Math.Round(spread / buyObservation.BuyPrice * 100m, 1),
+                        Quantity = quantity,
+                        CargoCapacity = cargo,
+                        BuyStock = buyObservation.Volume,
+                        SellDemand = sellObservation.DemandVolume,
+                        Profit = Math.Round(spread * quantity, 0)
+                    });
                 }
             }
 
-            return best;
+            return candidates;
         }
 
         private void RebuildBestRoutes()
@@ -644,33 +1092,44 @@ namespace ScipDashboard.WPF.ViewModels
 
             foreach (var commodity in _allCommodities)
             {
-                var observations = _allObservations.Where(o => o.CommodityId == commodity.Id).ToList();
+                var observations = _allObservations
+                    .Where(observation => observation.CommodityId == commodity.Id)
+                    .GroupBy(observation => observation.LocationId)
+                    .Select(group => group.OrderByDescending(observation => observation.Timestamp).First())
+                    .ToList();
                 if (observations.Count < 2) continue;
 
-                var bestBuy = observations.OrderBy(o => o.BuyPrice).FirstOrDefault();
-                if (bestBuy == null || bestBuy.BuyPrice <= 0) continue;
+                decimal capital = ParseDecimal(StartingCapital, 100000m);
+                (PriceObservation Buy, PriceObservation Sell, int Quantity, decimal Profit)? best = null;
+                foreach (var buy in observations.Where(o => o.BuyPrice > 0 && o.Volume > 0 &&
+                             _allLocations.FirstOrDefault(location => location.Id == o.LocationId) is { } location &&
+                             IsTerminalOrOrbit(location) && IsRouteLocationAllowed(location)))
+                {
+                    var affordable = (int)Math.Min(int.MaxValue, capital / buy.BuyPrice);
+                    foreach (var sell in observations.Where(o => o.LocationId != buy.LocationId &&
+                                 o.SellPrice > buy.BuyPrice && o.DemandVolume > 0 &&
+                                 _allLocations.FirstOrDefault(location => location.Id == o.LocationId) is { } location &&
+                                 IsTerminalOrOrbit(location) && IsRouteLocationAllowed(location)))
+                    {
+                        var quantity = Math.Min(cargo, Math.Min(Math.Min(buy.Volume, sell.DemandVolume), affordable));
+                        if (quantity <= 0) continue;
+                        var profit = Math.Round((sell.SellPrice - buy.BuyPrice) * quantity, 0);
+                        if (best == null || profit > best.Value.Profit)
+                            best = (buy, sell, quantity, profit);
+                    }
+                }
 
-                var bestSell = observations
-                    .Where(o => o.LocationId != bestBuy.LocationId && o.SellPrice > bestBuy.BuyPrice)
-                    .OrderByDescending(o => o.SellPrice)
-                    .FirstOrDefault();
-                if (bestSell == null) continue;
-
-                int qty = Math.Min(cargo, Math.Min(bestBuy.Volume, bestSell.Volume));
-                if (qty <= 0) continue;
-
-                decimal profit = Math.Round((bestSell.SellPrice - bestBuy.BuyPrice) * qty, 0);
-
+                if (best is not { } route) continue;
                 rows.Add((new BestRouteRow
                 {
-                    Start = bestBuy.LocationName,
+                    Start = route.Buy.LocationName,
                     Commodity = commodity.Name,
-                    SellAt = bestSell.LocationName,
-                    BuyText = $"{bestBuy.BuyPrice:N0}",
-                    SellText = $"{bestSell.SellPrice:N0}",
-                    ProfitText = $"+{profit:N0}",
-                    TimeText = $"{Math.Max(0, (int)(DateTime.UtcNow - bestBuy.Timestamp).TotalHours)}h ago"
-                }, profit));
+                    SellAt = route.Sell.LocationName,
+                    BuyText = $"{route.Buy.BuyPrice:N0}",
+                    SellText = $"{route.Sell.SellPrice:N0}",
+                    ProfitText = $"+{route.Profit:N0} ({route.Quantity:N0} SCU)",
+                    TimeText = $"{Math.Max(0, (int)(DateTime.UtcNow - route.Buy.Timestamp).TotalHours)}h ago"
+                }, route.Profit));
             }
 
             foreach (var row in rows.OrderByDescending(r => r.Profit))
@@ -692,6 +1151,14 @@ namespace ScipDashboard.WPF.ViewModels
         private static decimal ParseDecimal(string text, decimal fallback)
             => decimal.TryParse(text?.Trim(), out decimal v) && v >= 0 ? v : fallback;
 
+        private static bool IsTerminalOrOrbit(Location location)
+        {
+            var type = location.Type ?? string.Empty;
+            return type.Contains("terminal", StringComparison.OrdinalIgnoreCase) ||
+                   type.Contains("orbit", StringComparison.OrdinalIgnoreCase) ||
+                   type.Contains("station", StringComparison.OrdinalIgnoreCase);
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -705,7 +1172,7 @@ namespace ScipDashboard.WPF.ViewModels
         public decimal MarginPercent { get; set; }
         public decimal EstimatedProfitPerScu { get; set; }
         public int StockVolume { get; set; }
-        public string DisplayText => "{Name}   ·   +{MarginPercent:0.#}% margin   ·   {EstimatedProfitPerScu:N0} aUEC/SCU";
+        public string DisplayText => $"{Name}   ·   +{MarginPercent:0.#}% margin   ·   {EstimatedProfitPerScu:N0} aUEC/SCU";
     }
 
     public class LegCommodityOption
@@ -715,8 +1182,19 @@ namespace ScipDashboard.WPF.ViewModels
         public decimal BuyPrice { get; set; }
         public decimal MarginPercent { get; set; }
         public decimal EstimatedProfitPerScu { get; set; }
+        public int EstimatedQuantity { get; set; }
+        public decimal EstimatedTotalProfit { get; set; }
+        public decimal UexAverageIndex { get; set; }
+        public bool HasUexAverageIndex { get; set; }
         public int StockVolume { get; set; }
-        public string DisplayText => "{Name}   ·   +{MarginPercent:0.#}% margin   ·   {EstimatedProfitPerScu:N0} aUEC/SCU";
+        public string BuyAtStation { get; set; } = string.Empty;
+        public bool HasProfitableSell { get; set; }
+        public string UexAverageIndexText => HasUexAverageIndex
+            ? $"UEX avg {UexAverageIndex:+#,##0;-#,##0;0}"
+            : "UEX avg unavailable";
+        public string DisplayText => HasProfitableSell
+            ? $"{Name}   ·   buy at {BuyAtStation}   ·   {EstimatedQuantity:N0} SCU   ·   +{EstimatedProfitPerScu:N0}/SCU   ·   +{EstimatedTotalProfit:N0} total   ·   {UexAverageIndexText}"
+            : $"{Name}   ·   {StockVolume:N0} SCU stock   ·   no profitable sell quote";
     }
 
     public class LegDestinationOption
@@ -728,7 +1206,9 @@ namespace ScipDashboard.WPF.ViewModels
         public decimal SellPrice { get; set; }
         public decimal MarginPercent { get; set; }
         public int DemandVolume { get; set; }
-        public string DisplayText => $"{Name}   ·   {SellPrice:N0} aUEC   ·   +{MarginPercent:0.#}% margin";
+        public int EstimatedQuantity { get; set; }
+        public decimal EstimatedTotalProfit { get; set; }
+        public string DisplayText => $"{Name}   ·   {EstimatedQuantity:N0} SCU   ·   sell {SellPrice:N0} aUEC/SCU   ·   +{EstimatedTotalProfit:N0} total";
     }
 
     public class RouteLeg : INotifyPropertyChanged
@@ -744,6 +1224,8 @@ namespace ScipDashboard.WPF.ViewModels
         public int BuyStock { get; set; }
         public int SellDemand { get; set; }
         public decimal Profit { get; set; }
+        public decimal BuyCost => BuyPrice * Quantity;
+        public decimal SellRevenue => SellPrice * Quantity;
 
         private int _stepNumber;
         public int StepNumber
@@ -762,6 +1244,8 @@ namespace ScipDashboard.WPF.ViewModels
 
         public string BuyText => $"Buy {BuyPrice:N0}";
         public string SellText => $"Sell {SellPrice:N0}";
+        public string PurchaseBreakdown => $"Buy {Quantity:N0} SCU × {BuyPrice:N0} = {BuyCost:N0} aUEC";
+        public string SaleBreakdown => $"Sell {Quantity:N0} SCU × {SellPrice:N0} = {SellRevenue:N0} aUEC";
         public string MarginText => $"{MarginPercent:0.0}% margin";
         public string ScuText => $"{Quantity:N0}/{CargoCapacity:N0} SCU";
         public string ProfitText => $"+{Profit:N0}";
@@ -787,8 +1271,14 @@ namespace ScipDashboard.WPF.ViewModels
         public int Index { get; set; }
         public ObservableCollection<RouteLeg> Legs { get; set; } = new ObservableCollection<RouteLeg>();
         public decimal TotalProfit { get; set; }
+        public decimal StartingCapital { get; set; }
+        public decimal EndingCapital => StartingCapital + TotalProfit;
+        public decimal ReturnOnInvestment => StartingCapital > 0 ? TotalProfit / StartingCapital * 100m : 0m;
         public int LegCount => Legs.Count;
-        public string DisplayText => $"Option {Index}   ·   {LegCount} leg{(LegCount == 1 ? "" : "s")}   ·   +{TotalProfit:N0}";
+        public string StartStation => Legs.FirstOrDefault()?.From.Name ?? string.Empty;
+        public decimal TotalBuyCost => Legs.Sum(leg => leg.BuyCost);
+        public decimal TotalSellRevenue => Legs.Sum(leg => leg.SellRevenue);
+        public string DisplayText => $"{StartStation}  →  …  →  {StartStation}   ·   {LegCount} legs   ·   Buy {TotalBuyCost:N0}   ·   Sell {TotalSellRevenue:N0}   ·   +{TotalProfit:N0} aUEC   ·   End {EndingCapital:N0}   ·   {ReturnOnInvestment:0.#}% ROI";
     }
 
     public class SavedLoopSummary
@@ -808,5 +1298,19 @@ namespace ScipDashboard.WPF.ViewModels
         public string SellText { get; set; } = string.Empty;
         public string ProfitText { get; set; } = string.Empty;
         public string TimeText { get; set; } = string.Empty;
+    }
+
+    public class LocationCatalogEntry
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string SystemName { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string ParentName { get; set; } = string.Empty;
+        public bool HasResources { get; set; }
+        public string Source { get; set; } = string.Empty;
+        public string DisplayName => Type == "Asteroid" && Id.Length > 8
+            ? $"{Name} · {Id.Substring(Id.Length - 8)}"
+            : Name;
     }
 }

@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using ScipDashboard.Core.Data;
 using ScipDashboard.Core.Models;
 using ScipDashboard.Core.Services;
+using ScipDashboard.WPF.Services;
 
 namespace ScipDashboard.WPF.ViewModels
 {
@@ -18,58 +21,64 @@ namespace ScipDashboard.WPF.ViewModels
         private bool _isLoading;
         private string _statusMessage = "Ready";
         private DataSourceStatus _dataStatus = DataSourceStatus.Sample;
+        private string _operationType = "Salvage";
+        private string _operationLocation = string.Empty;
+        private string _operationResource = string.Empty;
+        private int _operationYieldScu;
+        private int _operationDurationMinutes = 60;
+        private decimal _operationPricePerScu;
+        private string _selectedHazardBand = "Low risk";
+        private string _selectedTargetType = "Medium hull";
+        private SalvageHullOption _selectedSalvageHull;
 
         public ObservableCollection<SalvageLocationViewModel> Locations { get; } = new();
         public ObservableCollection<string> LocationNames { get; } = new() { "All Locations" };
-        public ObservableCollection<ComingSoonItem> ComingSoonItems { get; } = new()
+        public ObservableCollection<string> ActivityTypes { get; } = new() { "Salvage", "Mining" };
+        public ObservableCollection<string> HazardBands { get; } = new() { "Low risk", "Moderate risk", "High risk", "Extreme risk" };
+        public ObservableCollection<string> TargetTypes { get; } = new()
         {
-            new()
-            {
-                FeatureName = "Salvage Location Scanner",
-                FeatureDescription = "Scan salvage fields across systems to locate wreckage, derelict ships, and recoverable materials."
-            },
-            new()
-            {
-                FeatureName = "Material Yield Calculator",
-                FeatureDescription = "Estimate refined material output from salvaged components based on ship cargo capacity and processing efficiency."
-            },
-            new()
-            {
-                FeatureName = "Mining Route Optimizer",
-                FeatureDescription = "Plan mining runs across asteroid fields with mineral concentration, distance, and risk assessment."
-            },
-            new()
-            {
-                FeatureName = "Cargo Fill Tracker",
-                FeatureDescription = "Monitor cargo fill rates during mining and salvaging runs with real-time capacity alerts."
-            },
-            new()
-            {
-                FeatureName = "Profit Per Hour",
-                FeatureDescription = "Calculate estimated profit per hour for mining and salvaging operations based on market prices and travel time."
-            },
-            new()
-            {
-                FeatureName = "Salvage Contract Board",
-                FeatureDescription = "Browse and accept salvaging contracts from other players and organizations."
-            },
-            new()
-            {
-                FeatureName = "Mining Hotspot Tracker",
-                FeatureDescription = "Track active mining hotspots with resource density, competition level, and depletion rates."
-            },
-            new()
-            {
-                FeatureName = "Export Salvage Logs",
-                FeatureDescription = "Export salvaging run data to CSV/JSON for analysis and sharing with your org."
-            }
+            "Small hull", "Medium hull", "Large hull", "Capital wreck", "Asteroid deposit", "Quantanium deposit"
         };
+        public ObservableCollection<SalvageHullOption> SalvageHulls { get; } = new()
+        {
+            new("Drake Vulture", 12, "Salvage"),
+            new("Drake Golem", 6, "Salvage"),
+            new("Aegis Reclaimer", 420, "Salvage"),
+            new("Argo SRV", 0, "Support"),
+            new("Drake Caterpillar", 576, "Hauling"),
+            new("MISC Prospector", 32, "Mining"),
+            new("Argo MOLE", 96, "Mining")
+        };
+        public ObservableCollection<SalvageComponentReference> ComponentReferences { get; } = new()
+        {
+            new("Recycled Material Composite", "Material", "12 aUEC / SCU", "Price reference; confirm before selling."),
+            new("Construction Materials", "Material", "6 aUEC / SCU", "Munching yield depends on ship and target."),
+            new("Size 1 shield generator", "Shield", "2,600 aUEC", "Estimated component value."),
+            new("Size 2 shield generator", "Shield", "9,500 aUEC", "Estimated component value."),
+            new("Size 3 shield generator", "Shield", "34,000 aUEC", "Estimated component value."),
+            new("Size 2 cooler", "Cooler", "5,200 aUEC", "Remove before hull scraping."),
+            new("Size 2 power plant", "Power", "7,800 aUEC", "Estimated component value."),
+            new("Size 2 quantum drive", "Quantum", "14,500 aUEC", "Estimated component value.")
+        };
+        public ObservableCollection<OperationRunEntry> OperationRuns { get; } =
+            LocalFeatureStore.Read<ObservableCollection<OperationRunEntry>>("operations.json");
+        public ICommand AddOperationCommand { get; }
+        public ICommand RemoveOperationCommand { get; }
 
         public string SearchQuery
         {
             get => _searchQuery;
             set { if (_searchQuery != value) { _searchQuery = value; OnPropertyChanged(); FilterLocations(); } }
         }
+
+        public sealed record SalvageHullOption(string Name, int CargoCapacityScu, string Role)
+        {
+            public string DisplayText => CargoCapacityScu > 0
+                ? $"{Name} · {CargoCapacityScu:N0} SCU · {Role}"
+                : $"{Name} · support hull · {Role}";
+        }
+
+        public sealed record SalvageComponentReference(string Name, string Category, string Value, string Notes);
 
         public string SelectedLocation
         {
@@ -96,6 +105,61 @@ namespace ScipDashboard.WPF.ViewModels
         }
 
         public bool IsEmpty => Locations.Count == 0;
+        public int RecordedRuns => OperationRuns.Count;
+        public decimal TotalEstimatedProfit => OperationRuns.Sum(run => run.EstimatedProfit);
+        public decimal AverageEstimatedProfitPerHour => OperationRuns.Count == 0
+            ? 0m
+            : OperationRuns.Average(run => run.EstimatedProfitPerHour);
+
+        public string OperationType
+        {
+            get => _operationType;
+            set { if (_operationType != value) { _operationType = value; OnPropertyChanged(); } }
+        }
+
+        public string OperationLocation
+        {
+            get => _operationLocation;
+            set { if (_operationLocation != value) { _operationLocation = value; OnPropertyChanged(); } }
+        }
+
+        public string OperationResource
+        {
+            get => _operationResource;
+            set { if (_operationResource != value) { _operationResource = value; OnPropertyChanged(); } }
+        }
+
+        public int OperationYieldScu
+        {
+            get => _operationYieldScu;
+            set
+            {
+                if (_operationYieldScu != value)
+                {
+                    _operationYieldScu = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(OperationEstimatedProfit));
+                    OnPropertyChanged(nameof(PlannedCargoTrips));
+                }
+            }
+        }
+
+        public int OperationDurationMinutes
+        {
+            get => _operationDurationMinutes;
+            set { if (_operationDurationMinutes != value) { _operationDurationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(OperationEstimatedProfitPerHour)); } }
+        }
+
+        public decimal OperationPricePerScu
+        {
+            get => _operationPricePerScu;
+            set { if (_operationPricePerScu != value) { _operationPricePerScu = value; OnPropertyChanged(); OnPropertyChanged(nameof(OperationEstimatedProfit)); OnPropertyChanged(nameof(OperationEstimatedProfitPerHour)); } }
+        }
+
+        public decimal OperationEstimatedProfit => Math.Max(0, OperationYieldScu) * Math.Max(0, OperationPricePerScu);
+        public decimal OperationEstimatedProfitPerHour => OperationDurationMinutes <= 0
+            ? 0m
+            : OperationEstimatedProfit * 60m / OperationDurationMinutes;
 
         public System.Windows.Media.SolidColorBrush StatusColor => DataStatus switch
         {
@@ -108,9 +172,44 @@ namespace ScipDashboard.WPF.ViewModels
         public SalvageViewModel(IDataService dataService)
         {
             _dataService = dataService;
+            _selectedSalvageHull = SalvageHulls[0];
             Locations.CollectionChanged += (s, e) => OnPropertyChanged(nameof(IsEmpty));
+            AddOperationCommand = new RelayCommand(AddOperation);
+            RemoveOperationCommand = new RelayCommand<OperationRunEntry?>(RemoveOperation);
             LoadDataAsync();
         }
+
+        public string SelectedHazardBand
+        {
+            get => _selectedHazardBand;
+            set { if (_selectedHazardBand != value) { _selectedHazardBand = value; OnPropertyChanged(); } }
+        }
+
+        public string SelectedTargetType
+        {
+            get => _selectedTargetType;
+            set { if (_selectedTargetType != value) { _selectedTargetType = value; OnPropertyChanged(); } }
+        }
+
+        public SalvageHullOption SelectedSalvageHull
+        {
+            get => _selectedSalvageHull;
+            set
+            {
+                if (_selectedSalvageHull == value) return;
+                _selectedSalvageHull = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PlannedCargoTrips));
+                OnPropertyChanged(nameof(SelectedHullCapacityText));
+            }
+        }
+
+        public int PlannedCargoTrips => SelectedSalvageHull.CargoCapacityScu <= 0
+            ? 0
+            : Math.Max(1, (int)Math.Ceiling((double)Math.Max(0, OperationYieldScu) / SelectedSalvageHull.CargoCapacityScu));
+        public string SelectedHullCapacityText => SelectedSalvageHull.CargoCapacityScu <= 0
+            ? "No cargo hold listed"
+            : $"{SelectedSalvageHull.CargoCapacityScu:N0} SCU hold";
 
         private async void LoadDataAsync()
         {
@@ -142,7 +241,10 @@ namespace ScipDashboard.WPF.ViewModels
             // Salvage locations are those with scrap/salvage commodities
             var salvageCommodities = marketData.Commodities
                 .Where(c => c.Category.Equals("Salvage", StringComparison.OrdinalIgnoreCase) ||
-                           c.Category.Equals("Salvage / Industrial", StringComparison.OrdinalIgnoreCase))
+                           c.Category.Equals("Salvage / Industrial", StringComparison.OrdinalIgnoreCase) ||
+                           c.Category.Contains("Mineral", StringComparison.OrdinalIgnoreCase) ||
+                           c.Category.Contains("Ore", StringComparison.OrdinalIgnoreCase) ||
+                           c.Category.Contains("Mining", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             foreach (var location in marketData.Locations.Where(l => l.HasCommoditiesMarket))
@@ -174,7 +276,16 @@ namespace ScipDashboard.WPF.ViewModels
                     AverageProfitPercent = avgProfit,
                     CargoFillPercent = totalDemand > 0 ? Math.Min(100, (double)(totalYield * 100.0 / totalDemand)) : 0,
                     Risk = CalculateRisk(avgProfit, totalYield),
-                    LastUpdated = salvageObs.Max(o => o.Timestamp)
+                    LastUpdated = salvageObs.Max(o => o.Timestamp),
+                    ActivityType = salvageObs.Any(observation =>
+                        marketData.Commodities.Any(commodity => commodity.Id == observation.CommodityId &&
+                            (commodity.Category.Contains("Mineral", StringComparison.OrdinalIgnoreCase) ||
+                             commodity.Category.Contains("Ore", StringComparison.OrdinalIgnoreCase) ||
+                             commodity.Category.Contains("Mining", StringComparison.OrdinalIgnoreCase))))
+                        ? "Mining / Salvage"
+                        : "Salvage",
+                    TopResource = salvageObs.OrderByDescending(observation => observation.Volume)
+                        .Select(observation => observation.CommodityName).FirstOrDefault() ?? "Unlisted"
                 });
             }
         }
@@ -206,6 +317,58 @@ namespace ScipDashboard.WPF.ViewModels
             return Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2);
         }
 
+        private void AddOperation()
+        {
+            if (string.IsNullOrWhiteSpace(OperationLocation) || string.IsNullOrWhiteSpace(OperationResource) ||
+                OperationYieldScu <= 0 || OperationDurationMinutes <= 0 || OperationPricePerScu <= 0)
+            {
+                StatusMessage = "Enter a location, resource, positive SCU yield, duration, and unit sell estimate.";
+                return;
+            }
+
+            var operation = new OperationRunEntry
+            {
+                ActivityType = OperationType,
+                Location = OperationLocation.Trim(),
+                Resource = OperationResource.Trim(),
+                YieldScu = OperationYieldScu,
+                DurationMinutes = OperationDurationMinutes,
+                PricePerScu = OperationPricePerScu,
+                RecordedAt = DateTime.UtcNow
+            };
+            OperationRuns.Insert(0, operation);
+            OperationLocation = string.Empty;
+            OperationResource = string.Empty;
+            OperationYieldScu = 0;
+            OperationPricePerScu = 0m;
+            if (SaveOperations())
+                StatusMessage = $"{operation.ActivityType} run recorded: {operation.EstimatedProfit:N0} aUEC estimated gross value.";
+        }
+
+        private void RemoveOperation(OperationRunEntry? operation)
+        {
+            if (operation == null || !OperationRuns.Remove(operation)) return;
+            if (SaveOperations())
+                StatusMessage = "Operation record removed.";
+        }
+
+        private bool SaveOperations()
+        {
+            try
+            {
+                LocalFeatureStore.Write("operations.json", OperationRuns);
+                OnPropertyChanged(nameof(RecordedRuns));
+                OnPropertyChanged(nameof(TotalEstimatedProfit));
+                OnPropertyChanged(nameof(AverageEstimatedProfitPerHour));
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                StatusMessage = $"Run data changed in memory but could not be saved locally: {ex.Message}";
+                return false;
+            }
+        }
+
         private static int CalculateRisk(decimal margin, int volume)
         {
             var risk = 50;
@@ -227,7 +390,7 @@ namespace ScipDashboard.WPF.ViewModels
         }
     }
 
-    public class SalvageLocationViewModel : INotifyPropertyChanged
+    public class SalvageLocationViewModel
     {
         public string LocationId { get; set; } = string.Empty;
         public string LocationName { get; set; } = string.Empty;
@@ -239,13 +402,26 @@ namespace ScipDashboard.WPF.ViewModels
         public double CargoFillPercent { get; set; }
         public int Risk { get; set; }
         public DateTime LastUpdated { get; set; }
+        public string ActivityType { get; set; } = "Salvage";
+        public string TopResource { get; set; } = string.Empty;
 
         public string RiskText => $"{Risk}/100";
         public string YieldText => $"{TotalYield:#,##0} SCU";
         public string DemandText => $"{TotalDemand:#,##0} SCU";
         public string ProfitText => $"+{AverageProfitPercent:0.##}%";
         public string CargoFillText => $"{CargoFillPercent:0.##}%";
+    }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+    public sealed class OperationRunEntry
+    {
+        public string ActivityType { get; set; } = "Salvage";
+        public string Location { get; set; } = string.Empty;
+        public string Resource { get; set; } = string.Empty;
+        public int YieldScu { get; set; }
+        public int DurationMinutes { get; set; }
+        public decimal PricePerScu { get; set; }
+        public DateTime RecordedAt { get; set; }
+        public decimal EstimatedProfit => YieldScu * PricePerScu;
+        public decimal EstimatedProfitPerHour => DurationMinutes > 0 ? EstimatedProfit * 60m / DurationMinutes : 0m;
     }
 }

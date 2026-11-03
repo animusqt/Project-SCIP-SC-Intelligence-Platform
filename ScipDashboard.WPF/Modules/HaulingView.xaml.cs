@@ -14,9 +14,10 @@ namespace ScipDashboard.WPF.Modules
 
             // Get services from App
             var dataService = App.Services.Get<IDataService>();
+            var marketDataService = App.Services.Get<IMarketDataService>();
 
             // Create view model
-            DataContext = new HaulingViewModel(dataService);
+            DataContext = new HaulingViewModel(dataService, marketDataService);
         }
 
         /// <summary>Loads a suggested multi-stop loop into the builder when an option chip is clicked.</summary>

@@ -1,34 +1,129 @@
 <UserControl x:Class="ScipDashboard.WPF.Modules.StarQuesterView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:d="http://schemas.expression.blend/2008"
-             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
-    
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="20">
-            <Border Background="{DynamicResource SecondaryBackgroundBrush}" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Padding="24">
-                <StackPanel Orientation="Vertical">
-                    <TextBlock Text="⭐ StarQuester" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,8"/>
-                    <TextBlock Text="Quest capture, review, and faction-reputation guidance" FontSize="12" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,0,0,16"/>
-                    
-                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,8,0,16"/>
-                    
-                    <TextBlock Text="✅ Coming Soon:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource CharcoalBrush}" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Vertical" Margin="0,0,0,0">
-                        <TextBlock Text="• Quest Capture - Paste text or scan from screenshots" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,2"/>
-                        <TextBlock Text="• Quest Parser - Automatic extraction of quest details" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,2"/>
-                        <TextBlock Text="• Faction Matching - Auto-match quests to faction goals" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,2"/>
-                        <TextBlock Text="• Reputation Tracking - Monitor your faction standings" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,2"/>
-                        <TextBlock Text="• Progress Journal - Track completed and active quests" FontSize="11" Foreground="{DynamicResource DarkModeSubtextBrush}" Margin="0,2,0,2"/>
-                    </StackPanel>
-                    
-                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
-                    
-                    <TextBlock Text="StarQuester will help you capture, track, and optimize your quest progression with evidence-based faction reputation guidance." FontSize="10" Foreground="{DynamicResource DarkModeSubtextBrush}" TextWrapping="Wrap"/>
+        <StackPanel Margin="18">
+            <Border Background="{DynamicResource GradientCard}" BorderBrush="{DynamicResource PrimaryOrangeBrush}"
+                    BorderThickness="0,0,0,2" Padding="18" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="StarQuester journal" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <TextBlock Text="Capture contracts, track faction goals, and record completed rewards."
+                               Margin="0,4,0,0" Foreground="{DynamicResource SecondaryTextColor}"/>
                 </StackPanel>
             </Border>
-        </Grid>
+
+            <UniformGrid Columns="4" Margin="0,0,0,14">
+                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="12" Margin="0,0,8,0">
+                    <StackPanel><TextBlock Text="Active" Foreground="{DynamicResource MutedTextColor}"/>
+                        <TextBlock Text="{Binding ActiveQuestCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource SecondaryAccentCyan}"/></StackPanel>
+                </Border>
+                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="12" Margin="4,0">
+                    <StackPanel><TextBlock Text="Completed" Foreground="{DynamicResource MutedTextColor}"/>
+                        <TextBlock Text="{Binding CompletedQuestCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource SuccessGreen}"/></StackPanel>
+                </Border>
+                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="12" Margin="8,0,0,0">
+                    <StackPanel><TextBlock Text="Recorded rewards" Foreground="{DynamicResource MutedTextColor}"/>
+                        <TextBlock Text="{Binding TotalRewards, StringFormat={}{0:N0} aUEC}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryAccentAmber}"/></StackPanel>
+                </Border>
+                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="12" Margin="8,0,0,0">
+                    <StackPanel><TextBlock Text="Failed" Foreground="{DynamicResource MutedTextColor}"/>
+                        <TextBlock Text="{Binding FailedQuestCount}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryOrangeBrush}"/></StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Background="{DynamicResource SecondaryBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="16" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Capture contract text" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <TextBlock Text="Paste mission text, extract likely fields, review, and add it to your journal."
+                               Foreground="{DynamicResource MutedTextColor}" Margin="0,3,0,8"/>
+                    <TextBox Text="{Binding CaptureText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="72" MaxHeight="130" VerticalScrollBarVisibility="Auto" Padding="8"
+                             Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}"
+                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,0,8"/>
+                    <Button Content="Extract fields from pasted text" Command="{Binding ParseCaptureCommand}" Padding="10,6"
+                            HorizontalAlignment="Left" Background="{DynamicResource SecondaryAccentCyan}" Foreground="#07111F" BorderThickness="0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="{DynamicResource SecondaryBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="16" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="Quest details" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,8"/>
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,8,8"><TextBlock Text="Quest title" Foreground="{DynamicResource MutedTextColor}"/>
+                            <TextBox Text="{Binding QuestTitle, UpdateSourceTrigger=PropertyChanged}" Padding="7" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}" BorderBrush="{DynamicResource BorderBrush}"/></StackPanel>
+                        <StackPanel Margin="8,0,0,8"><TextBlock Text="Faction / contractor" Foreground="{DynamicResource MutedTextColor}"/>
+                            <TextBox Text="{Binding Faction, UpdateSourceTrigger=PropertyChanged}" Padding="7" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}" BorderBrush="{DynamicResource BorderBrush}"/></StackPanel>
+                        <StackPanel Margin="0,0,8,8"><TextBlock Text="Reward (aUEC)" Foreground="{DynamicResource MutedTextColor}"/>
+                            <TextBox Text="{Binding Reward, UpdateSourceTrigger=PropertyChanged}" Padding="7" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}" BorderBrush="{DynamicResource BorderBrush}"/></StackPanel>
+                        <StackPanel Margin="8,0,0,8"><TextBlock Text="Description" Foreground="{DynamicResource MutedTextColor}"/>
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Padding="7" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}" BorderBrush="{DynamicResource BorderBrush}"/></StackPanel>
+                        <StackPanel Margin="0,0,8,8"><TextBlock Text="Reputation credited (manual estimate)" Foreground="{DynamicResource MutedTextColor}"/>
+                            <TextBox Text="{Binding ReputationPoints, UpdateSourceTrigger=LostFocus}" Padding="7" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource PrimaryTextColor}" BorderBrush="{DynamicResource BorderBrush}"/></StackPanel>
+                    </UniformGrid>
+                    <Button Content="Add quest to journal" Command="{Binding AddQuestCommand}" Padding="10,6"
+                            HorizontalAlignment="Left" Background="{DynamicResource PrimaryOrangeBrush}" Foreground="#07111F" BorderThickness="0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="{DynamicResource SecondaryBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Faction progress" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}"/>
+                    <TextBlock Text="Completion, failure and manually recorded reputation from your journal. This does not read or change live RSI reputation."
+                               Foreground="{DynamicResource MutedTextColor}" FontSize="10" Margin="0,3,0,8"/>
+                    <ItemsControl ItemsSource="{Binding FactionProgress}" Margin="0,0,0,10">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="10" Margin="0,0,8,8">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Faction}" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}"/>
+                                        <TextBlock Foreground="{DynamicResource SecondaryTextColor}">
+                                            <TextBlock.Text><MultiBinding StringFormat="{}Active {0} / complete {1} / failed {2}">
+                                                <Binding Path="ActiveCount"/><Binding Path="CompletedCount"/><Binding Path="FailedCount"/>
+                                            </MultiBinding></TextBlock.Text>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding CompletedRewards, StringFormat={}{0:N0} aUEC rewards}" Foreground="{DynamicResource PrimaryAccentAmber}"/>
+                                        <TextBlock Text="{Binding CompletedReputationPoints, StringFormat={}{0:N0} journal reputation points}" Foreground="{DynamicResource SecondaryAccentCyan}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Quest journal" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextColor}" Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding Quests}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource PrimaryTextColor}"/>
+                                            <TextBlock Text="{Binding Faction}" Foreground="{DynamicResource SecondaryAccentCyan}" Margin="0,3"/>
+                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource SecondaryTextColor}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Reward, StringFormat=Reward: {0} aUEC}" Foreground="{DynamicResource PrimaryAccentAmber}" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding Status, StringFormat=Status: {0}}" Foreground="{DynamicResource MutedTextColor}" FontSize="10"/>
+                                            <TextBlock Text="{Binding ReputationPoints, StringFormat=Reputation recorded: {0}}" Foreground="{DynamicResource SecondaryAccentCyan}" FontSize="10"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <Button Content="Complete" Padding="8,4" Margin="4"
+                                                    Command="{Binding DataContext.CompleteQuestCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="Fail" Padding="8,4" Margin="4"
+                                                    Command="{Binding DataContext.FailQuestCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Content="Remove" Padding="8,4" Margin="4"
+                                                    Command="{Binding DataContext.RemoveQuestCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource SecondaryTextColor}" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
     </ScrollViewer>
 </UserControl>

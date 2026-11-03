@@ -50,6 +50,8 @@ namespace ScipDashboard.Core.Models
         public string LocationId { get; set; } = string.Empty;
         public string LocationName { get; set; } = string.Empty;
         public int Volume { get; set; }
+        public List<int> SupportedContainerSizes { get; set; } = [];
+        public int? EstimatedLoadingTimeSeconds { get; set; }
         
         // Buy price and margin info
         public decimal BuyPrice { get; set; }
@@ -118,7 +120,16 @@ namespace ScipDashboard.Core.Models
         public string Category { get; set; } = "General";
         
         public decimal PricePerScu { get; set; }
+        public decimal ReferenceMarginPerScu { get; set; }
+        public decimal ReferenceBuyPrice { get; set; }
+        public decimal ReferenceSellPrice { get; set; }
         public int BaseDemandVolume { get; set; }
+        public decimal UexAverageBuyPrice { get; set; }
+        public decimal UexAverageSellPrice { get; set; }
+        public decimal UexAverageSupplyScu { get; set; }
+        public decimal UexAverageDemandScu { get; set; }
+        public decimal UexAverageIndex => UexAverageSellPrice - UexAverageBuyPrice;
+        public DateTime? UexUpdatedAt { get; set; }
         
         public bool IsIllegal { get; set; }
         public string SystemName { get; set; } = string.Empty;
@@ -133,6 +144,18 @@ namespace ScipDashboard.Core.Models
         public decimal CurrentSellPrice { get; set; }
         public int DemandVolume { get; set; }
         public DataSourceStatus SourceStatus { get; set; } = DataSourceStatus.Sample;
+    }
+
+    public sealed class ManualCommodityEntry
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public string Name { get; set; } = string.Empty;
+        public decimal BuyPrice { get; set; }
+        public decimal SellPrice { get; set; }
+        public string BuyLocation { get; set; } = string.Empty;
+        public string SellLocation { get; set; } = string.Empty;
+        public int BuyStockScu { get; set; }
+        public int SellDemandScu { get; set; }
     }
 
     /// <summary>

@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 // Do NOT define placeholder classes - use fully qualified types from Models.cs
@@ -24,21 +28,45 @@ namespace ScipDashboard.Core.Data
         Task<List<ScipDashboard.Core.Models.WatchlistItem>> GetWatchlistAsync();
         Task AddToWatchlistAsync(ScipDashboard.Core.Models.WatchlistItem item);
         Task RemoveFromWatchlistAsync(string id);
-        Task UpdateCommodityPriceAsync(string commodityId, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName);
+        Task UpdateCommodityPriceAsync(string commodityId, string commodityName, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName, List<int>? supportedContainerSizes = null, int? estimatedLoadingTimeSeconds = null);
     }
 
     // Complete implementation using Models types
     public class DataService : IDataService
     {
-        // Private fields use Models namespace types directly (compiler will resolve them)
         private readonly List<ScipDashboard.Core.Models.MarketData> _marketData = [];
         private readonly List<ScipDashboard.Core.Models.Commodity> _commodities = [];
         private readonly List<ScipDashboard.Core.Models.PriceObservation> _observations = [];
+        private readonly SemaphoreSlim _marketDataLock = new(1, 1);
+        private readonly string _marketDataPath;
+        private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+
+        public DataService()
+            : this(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SCIP Dashboard",
+                "market-data.json"))
+        {
+        }
+
+        public DataService(string marketDataPath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(marketDataPath);
+            _marketDataPath = marketDataPath;
+        }
         
         public async Task SaveMarketDataAsync(ScipDashboard.Core.Models.MarketData data)
         {
-            _marketData.Clear();
-            _marketData.Add(data);
+            ArgumentNullException.ThrowIfNull(data);
+            await _marketDataLock.WaitAsync();
+            try
+            {
+                await SaveMarketDataCoreAsync(data);
+            }
+            finally
+            {
+                _marketDataLock.Release();
+            }
         }
 
         
@@ -50,101 +78,131 @@ namespace ScipDashboard.Core.Data
         
         public async Task<ScipDashboard.Core.Models.MarketData> GetMarketDataAsync(bool forceRefresh = false)
         {
-            if (_marketData.Count > 0 && !forceRefresh)
-                return _marketData[0];
+            await _marketDataLock.WaitAsync();
+            try
+            {
+                if (_marketData.Count > 0 && !forceRefresh)
+                    return _marketData[0];
 
-            // Load SC DataHub commodity data
-            var marketData = await LoadDataHubDataAsync();
-            
-            if (_marketData.Count == 0)
-                await SaveMarketDataAsync(marketData);
+                var referenceData = await LoadDataHubDataAsync();
+                ScipDashboard.Core.Models.MarketData marketData;
+                if (File.Exists(_marketDataPath))
+                {
+                    var json = await File.ReadAllTextAsync(_marketDataPath);
+                    marketData = JsonSerializer.Deserialize<ScipDashboard.Core.Models.MarketData>(json, _jsonOptions)
+                        ?? throw new InvalidDataException($"Saved market data at '{_marketDataPath}' is empty or invalid.");
+                    marketData.Commodities ??= [];
+                    marketData.Locations ??= [];
+                    marketData.PriceObservations ??= [];
+                }
+                else
+                {
+                    marketData = referenceData;
+                }
 
-            return marketData;
+                MergeReferenceCatalog(marketData, referenceData);
+                await SaveMarketDataCoreAsync(marketData);
+                return marketData;
+            }
+            finally
+            {
+                _marketDataLock.Release();
+            }
+        }
+
+        private async Task SaveMarketDataCoreAsync(ScipDashboard.Core.Models.MarketData data)
+        {
+            data.Timestamp = data.Timestamp == default ? DateTime.UtcNow : data.Timestamp;
+            var directory = Path.GetDirectoryName(_marketDataPath);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+            var temporaryPath = $"{_marketDataPath}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                await using (var output = new FileStream(
+                    temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+                {
+                    await JsonSerializer.SerializeAsync(output, data, _jsonOptions);
+                    await output.FlushAsync();
+                }
+
+                File.Move(temporaryPath, _marketDataPath, overwrite: true);
+                _marketData.Clear();
+                _marketData.Add(data);
+                _commodities.Clear();
+                _commodities.AddRange(data.Commodities);
+                _observations.Clear();
+                _observations.AddRange(data.PriceObservations);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                    File.Delete(temporaryPath);
+            }
+        }
+
+        private static void MergeReferenceCatalog(
+            ScipDashboard.Core.Models.MarketData marketData,
+            ScipDashboard.Core.Models.MarketData referenceData)
+        {
+            foreach (var reference in referenceData.Commodities)
+            {
+                var existing = marketData.Commodities.FirstOrDefault(commodity =>
+                    string.Equals(commodity.Name, reference.Name, StringComparison.OrdinalIgnoreCase));
+                if (existing == null)
+                {
+                    marketData.Commodities.Add(reference);
+                    continue;
+                }
+
+                existing.ReferenceBuyPrice = reference.ReferenceBuyPrice;
+                existing.ReferenceSellPrice = reference.ReferenceSellPrice;
+                existing.ReferenceMarginPerScu = reference.ReferenceMarginPerScu;
+                if (string.IsNullOrWhiteSpace(existing.Category) || existing.Category == "General")
+                    existing.Category = reference.Category;
+            }
+
+            var obsoleteReferenceIds = marketData.PriceObservations
+                .Where(observation =>
+                    string.Equals(observation.SourceName, "SC DataHub reference", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(observation.SourceName, "Sample", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(observation.SourceName, "Sample Data", StringComparison.OrdinalIgnoreCase))
+                .Select(observation => observation.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            marketData.PriceObservations.RemoveAll(observation => obsoleteReferenceIds.Contains(observation.Id));
+
+            var usedLocationIds = marketData.PriceObservations
+                .Select(observation => observation.LocationId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            marketData.Locations.RemoveAll(location =>
+                string.Equals(location.Id, "sc-datahub-reference", StringComparison.OrdinalIgnoreCase) &&
+                !usedLocationIds.Contains(location.Id));
+            marketData.Name = "SC DataHub baseline + UEX live market";
         }
 
         public async Task<List<ScipDashboard.Core.Models.Commodity>> GetCommoditiesAsync()
         {
             if (_commodities.Count == 0)
             {
-                await LoadDataHubDataAsync();
+                await GetMarketDataAsync();
             }
             return _commodities;
         }
         
         private async Task<ScipDashboard.Core.Models.MarketData> LoadDataHubDataAsync()
         {
-            var dataFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Build Doc", "sc_datahub_commodities_filtered.txt");
-            
+            var dataFilePath = Path.Combine(AppContext.BaseDirectory, "Build Doc", "sc_datahub_commodities_filtered.txt");
             if (!File.Exists(dataFilePath))
-            {
-                // Fallback: try relative path
-                dataFilePath = Path.Combine(AppContext.BaseDirectory, "Build Doc", "sc_datahub_commodities_filtered.txt");
-            }
+                throw new FileNotFoundException("The SC DataHub commodity reference file was not packaged with the dashboard.", dataFilePath);
 
             var marketData = new ScipDashboard.Core.Models.MarketData
             {
-                Name = "SC DataHub Market Data",
+                Name = "SC DataHub Reference Prices",
                 Timestamp = DateTime.UtcNow,
-                Locations = new List<ScipDashboard.Core.Models.Location>(),
+                Locations = [],
                 Commodities = new List<ScipDashboard.Core.Models.Commodity>(),
                 PriceObservations = new List<ScipDashboard.Core.Models.PriceObservation>()
             };
-
-            // Create some sample locations
-            var locations = new List<ScipDashboard.Core.Models.Location>
-            {
-                new() { Id = "loc-nb", Name = "New Babbage", SystemName = "Stanton", Type = "City", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-lor", Name = "Lorville", SystemName = "Hurston", Type = "City", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-olisar", Name = "Port Olisar", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-mic", Name = "MicroTech", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-everus", Name = "Everus Harbor", SystemName = "Stanton", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-pyro1", Name = "Prospect", SystemName = "Pyro", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-                new() { Id = "loc-nyx1", Name = "Riot", SystemName = "Nyx", Type = "Spaceport", IsActive = true, HasCommoditiesMarket = true },
-            };
-            marketData.Locations = locations;
-
-            if (!File.Exists(dataFilePath))
-            {
-                // Fallback to sample data if file not found
-                for (int i = 0; i < 10; i++)
-                {
-                    var commodity = new ScipDashboard.Core.Models.Commodity
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Name = $"Commodity-{i+1}",
-                        DisplayName = $"Commodity-{i+1}",
-                        CurrentBuyPrice = 10 + (i * 2),
-                        CurrentSellPrice = 15 + (i * 2),
-                        MarginPercent = 5,
-                        IsIllegal = false,
-                        SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample
-                    };
-                    _commodities.Add(commodity);
-                    marketData.Commodities.Add(commodity);
-
-                    foreach (var loc in locations)
-                    {
-                        var obs = new ScipDashboard.Core.Models.PriceObservation
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            CommodityId = commodity.Id,
-                            LocationId = loc.Id,
-                            LocationName = loc.Name,
-                            SystemName = loc.SystemName,
-                            BuyPrice = commodity.CurrentBuyPrice,
-                            SellPrice = commodity.CurrentSellPrice,
-                            Volume = 1000,
-                            DemandVolume = 800,
-                            Timestamp = DateTime.UtcNow.AddHours(-new Random().Next(1, 24)),
-                            SourceName = "SC DataHub",
-                            MarginPercent = commodity.MarginPercent
-                        };
-                        _observations.Add(obs);
-                        marketData.PriceObservations.Add(obs);
-                    }
-                }
-                return marketData;
-            }
 
             var lines = File.ReadAllLines(dataFilePath);
             bool inCommoditiesSection = false;
@@ -161,63 +219,40 @@ namespace ScipDashboard.Core.Data
 
                 if (!inCommoditiesSection) continue;
                 if (string.IsNullOrWhiteSpace(trimmed)) continue;
-                if (trimmed.StartsWith("==") || trimmed.StartsWith("---")) continue;
+                if (trimmed.StartsWith("==") || trimmed.StartsWith("---") || trimmed.StartsWith("- ")) continue;
 
                 var cols = trimmed.Split('|');
-                if (cols.Length < 3) continue;
+                if (cols.Length < 2) continue;
 
                 var commodityName = cols[0].Trim('"', ' ');
                 if (string.IsNullOrWhiteSpace(commodityName)) continue;
                 if (commodityName.Equals("Commodity", StringComparison.OrdinalIgnoreCase)) continue;
 
-                var buyPriceStr = cols.Length > 2 ? cols[2].Trim('"', ' ') : string.Empty;
-                var sellPriceStr = cols.Length > 3 ? cols[3].Trim('"', ' ') : string.Empty;
-
-                decimal buyPrice = ParseAuecPrice(buyPriceStr);
-                decimal sellPrice = ParseAuecPrice(sellPriceStr);
-
-                if (buyPrice <= 0 && sellPrice <= 0) continue;
+                var category = cols[1].Trim('"', ' ');
+                var buyPrice = ParseAuecPrice(cols.Length > 2 ? cols[2] : string.Empty);
+                var sellPrice = ParseAuecPrice(cols.Length > 3 ? cols[3] : string.Empty);
+                var marginPerScu = ParseAuecPrice(cols.Length > 4 ? cols[4] : string.Empty);
 
                 var commodity = new ScipDashboard.Core.Models.Commodity
                 {
-                    Id = Guid.NewGuid().ToString(),
+                    Id = Regex.Replace(commodityName.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-'),
                     Name = commodityName,
                     DisplayName = commodityName,
+                    Category = category,
+                    PricePerScu = buyPrice > 0 ? buyPrice : sellPrice,
+                    ReferenceMarginPerScu = marginPerScu,
                     CurrentBuyPrice = buyPrice,
                     CurrentSellPrice = sellPrice,
+                    ReferenceBuyPrice = buyPrice,
+                    ReferenceSellPrice = sellPrice,
                     MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
                     IsIllegal = false,
                     SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample
                 };
-                _commodities.Add(commodity);
+                if (marketData.Commodities.Any(existing => existing.Id == commodity.Id))
+                    continue;
+
                 marketData.Commodities.Add(commodity);
-
-                // Add price observations for each location
-                foreach (var loc in locations)
-                {
-                    // Add some price variation per location
-                    var locationVariation = new Random((int)(commodity.Id.GetHashCode() + loc.Id.GetHashCode()));
-                    var buyVariation = buyPrice * (0.9m + (decimal)locationVariation.NextDouble() * 0.2m);
-                    var sellVariation = sellPrice * (0.9m + (decimal)locationVariation.NextDouble() * 0.2m);
-
-                    var obs = new ScipDashboard.Core.Models.PriceObservation
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        CommodityId = commodity.Id,
-                        LocationId = loc.Id,
-                        LocationName = loc.Name,
-                        SystemName = loc.SystemName,
-                        BuyPrice = Math.Round(buyVariation, 2),
-                        SellPrice = Math.Round(sellVariation, 2),
-                        Volume = 1000,
-                        DemandVolume = 800,
-                        Timestamp = DateTime.UtcNow.AddHours(-new Random().Next(1, 24)),
-                        SourceName = "SC DataHub",
-                        MarginPercent = buyVariation > 0 ? Math.Round(((sellVariation - buyVariation) / buyVariation) * 100, 2) : 0m
-                    };
-                    _observations.Add(obs);
-                    marketData.PriceObservations.Add(obs);
-                }
             }
 
             return marketData;
@@ -226,10 +261,10 @@ namespace ScipDashboard.Core.Data
         private decimal ParseAuecPrice(string priceStr)
         {
             if (string.IsNullOrWhiteSpace(priceStr)) return 0m;
-            if (priceStr.Trim() == "—") return 0m;
+            if (priceStr.Trim() is "—" or "-") return 0m;
 
-            var cleaned = priceStr.Replace("aUEC", "").Replace(",", "").Trim();
-            if (decimal.TryParse(cleaned, out decimal result))
+            var cleaned = priceStr.Replace("aUEC", "", StringComparison.OrdinalIgnoreCase).Replace(",", "").Trim();
+            if (decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out var result))
                 return result;
 
             return 0m;
@@ -237,40 +272,21 @@ namespace ScipDashboard.Core.Data
 
         public async Task<List<ScipDashboard.Core.Models.PriceObservation>> GetPriceObservationsAsync(string commodityId)
         {
-            var observations = _observations.Where(o => o.CommodityId == commodityId).ToList();
-            if (observations.Count == 0)
-            {
-                // Populate with sample data
-                for (int i = 0; i < 5; i++)
-                {
-                    var obs = new ScipDashboard.Core.Models.PriceObservation
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        CommodityId = commodityId,
-                        Timestamp = DateTime.UtcNow.AddHours(-i * 12),
-                        SourceName = "Sample"
-                    };
-                    
-                    var comp = _commodities.FirstOrDefault(c => c.Id == commodityId);
-                    if (comp != null)
-                    {
-                        obs.BuyPrice = comp.CurrentBuyPrice;
-                        obs.SellPrice = comp.CurrentSellPrice + 5;
-                        obs.MarginPercent = 7.5m;
-                    }
-                    
-                    _observations.Add(obs);
-                }
-            }
-            return observations;
+            var marketData = await GetMarketDataAsync();
+            return marketData.PriceObservations
+                .Where(observation => observation.CommodityId == commodityId)
+                .OrderByDescending(observation => observation.Timestamp)
+                .ToList();
         }
         
         public async Task AddPriceObservationAsync(ScipDashboard.Core.Models.PriceObservation observation)
         {
+            var marketData = await GetMarketDataAsync();
             observation.Id = Guid.NewGuid().ToString();
             observation.Timestamp = DateTime.UtcNow;
             observation.SourceName = "Manual Entry";
-            _observations.Add(observation);
+            marketData.PriceObservations.Add(observation);
+            await SaveMarketDataAsync(marketData);
         }
 
         public async Task<List<ScipDashboard.Core.Models.Ship>> GetShipsAsync()
@@ -326,38 +342,67 @@ namespace ScipDashboard.Core.Data
             await Task.CompletedTask;
         }
 
-        public async Task UpdateCommodityPriceAsync(string commodityId, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName)
+        public async Task UpdateCommodityPriceAsync(string commodityId, string commodityName, string locationId, string locationName, string systemName, decimal buyPrice, decimal sellPrice, int volume, int demandVolume, DateTime timestamp, string sourceName, List<int>? supportedContainerSizes = null, int? estimatedLoadingTimeSeconds = null)
         {
-            // Try to find existing commodity
-            var commodity = _commodities.FirstOrDefault(c => c.Id == commodityId);
+            var marketData = await GetMarketDataAsync();
+            var commodity = marketData.Commodities.FirstOrDefault(c => c.Id == commodityId) ??
+                marketData.Commodities.FirstOrDefault(c =>
+                    string.Equals(c.Name, commodityName, StringComparison.OrdinalIgnoreCase));
             if (commodity == null)
             {
-                // Create new commodity entry
                 commodity = new ScipDashboard.Core.Models.Commodity
                 {
                     Id = commodityId,
-                    Name = locationName,
-                    DisplayName = locationName,
+                    Name = commodityName,
+                    DisplayName = commodityName,
                     CurrentBuyPrice = buyPrice,
                     CurrentSellPrice = sellPrice,
                     MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m,
                     SourceStatus = ScipDashboard.Core.Models.DataSourceStatus.Sample
                 };
+                marketData.Commodities.Add(commodity);
                 _commodities.Add(commodity);
             }
             else
             {
-                // Update existing commodity prices
-                commodity.CurrentBuyPrice = buyPrice;
-                commodity.CurrentSellPrice = sellPrice;
-                commodity.MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m;
+                commodityId = commodity.Id;
+                if (buyPrice > 0)
+                    commodity.CurrentBuyPrice = buyPrice;
+                if (sellPrice > 0)
+                    commodity.CurrentSellPrice = sellPrice;
+                commodity.MarginPercent = commodity.CurrentBuyPrice > 0
+                    ? Math.Round(((commodity.CurrentSellPrice - commodity.CurrentBuyPrice) / commodity.CurrentBuyPrice) * 100, 2)
+                    : 0m;
             }
 
-            // Add price observation
+            var matchingLocation = marketData.Locations.FirstOrDefault(location =>
+                location.Id == locationId ||
+                (string.Equals(location.Name, locationName, StringComparison.OrdinalIgnoreCase) &&
+                 string.Equals(location.SystemName, systemName, StringComparison.OrdinalIgnoreCase)));
+            if (matchingLocation != null)
+            {
+                locationId = matchingLocation.Id;
+                locationName = matchingLocation.Name;
+                systemName = matchingLocation.SystemName;
+            }
+            else
+            {
+                marketData.Locations.Add(new ScipDashboard.Core.Models.Location
+                {
+                    Id = locationId,
+                    Name = locationName,
+                    SystemName = systemName,
+                    Type = "Terminal",
+                    IsActive = true,
+                    HasCommoditiesMarket = true
+                });
+            }
+
             var observation = new ScipDashboard.Core.Models.PriceObservation
             {
                 Id = Guid.NewGuid().ToString(),
                 CommodityId = commodityId,
+                CommodityName = commodityName,
                 LocationId = locationId,
                 LocationName = locationName,
                 SystemName = systemName,
@@ -365,13 +410,41 @@ namespace ScipDashboard.Core.Data
                 SellPrice = sellPrice,
                 Volume = volume,
                 DemandVolume = demandVolume,
+                SupportedContainerSizes = supportedContainerSizes?.Distinct().OrderBy(size => size).ToList() ?? [],
+                EstimatedLoadingTimeSeconds = estimatedLoadingTimeSeconds,
                 Timestamp = timestamp,
                 SourceName = sourceName,
                 MarginPercent = buyPrice > 0 ? Math.Round(((sellPrice - buyPrice) / buyPrice) * 100, 2) : 0m
             };
-            _observations.Add(observation);
 
-            await Task.CompletedTask;
+            var existingObservation = marketData.PriceObservations
+                .Where(existing => existing.CommodityId == commodityId && existing.LocationId == locationId)
+                .OrderByDescending(existing => existing.Timestamp)
+                .FirstOrDefault();
+            if (existingObservation == null)
+            {
+                marketData.PriceObservations.Add(observation);
+            }
+            else
+            {
+                existingObservation.CommodityName = observation.CommodityName;
+                existingObservation.BuyPrice = observation.BuyPrice;
+                existingObservation.SellPrice = observation.SellPrice;
+                existingObservation.Volume = observation.Volume;
+                existingObservation.DemandVolume = observation.DemandVolume;
+                if (supportedContainerSizes is { Count: > 0 })
+                    existingObservation.SupportedContainerSizes = observation.SupportedContainerSizes;
+                if (estimatedLoadingTimeSeconds.HasValue)
+                    existingObservation.EstimatedLoadingTimeSeconds = estimatedLoadingTimeSeconds;
+                existingObservation.Timestamp = observation.Timestamp;
+                existingObservation.SourceName = observation.SourceName;
+                existingObservation.SourceStatus = observation.SourceStatus;
+                existingObservation.MarginPercent = observation.MarginPercent;
+                observation = existingObservation;
+            }
+
+            _observations.Add(observation);
+            await SaveMarketDataAsync(marketData);
         }
     }
 }
